@@ -1,106 +1,85 @@
 # stats_app/api_handler.py
 
 import requests
+import json
+
+class Skill:
+    """Represents a single Old School RuneScape skill's data."""
+    def __init__(self, rank: int, level: int, xp: int):
+        self.rank = rank
+        self.level = level
+        self.xp = xp
+
+class Boss:
+    """Represents a single Old School RuneScape boss's data."""
+    def __init__(self, rank: int, killcount: int):
+        self.rank = rank
+        self.killcount = killcount
+
+class PlayerStats:
+    """Represents all parsed stats for a single Old School RuneScape player."""
+    def __init__(self, player_name: str, timestamp: str, skills: dict, bosses: dict):
+        self.player_name = player_name
+        self.timestamp = timestamp
+        self.skills = skills # A dictionary of Skill objects
+        self.bosses = bosses # A dictionary of Boss objects
 
 def get_player_stats(player_name):
     """
-    Fetches and parses all player stats from the TempleOSRS API.
-    Returns a dictionary of stats or None if the player isn't found.
+    Fetches and parses all player stats from the TempleOSRS API's JSON response.
+    Returns a PlayerStats object or None if the player isn't found.
     """
     url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
 
     try:
         response = requests.get(url)
         response.raise_for_status()
-
-        # The API returns a long CSV string.
-        data_list = response.text.split(',')
         
-        # A simple check to ensure the response is not empty or malformed.
-        if len(data_list) < 25: # Minimal number of fields for a basic response
+        # The API now returns a JSON object. We use .json() to parse it.
+        data = response.json()
+
+        # Check if the API returned an error or empty data
+        if 'error' in data or not data.get('data'):
             return None
 
-        # Helper function to parse skill data blocks (rank, level, xp)
-        def parse_skill_block(index):
-            return {
-                'rank': int(data_list[index]),
-                'level': int(data_list[index + 1]),
-                'xp': int(data_list[index + 2]),
-            }
+        player_info = data['data']['info']
+        player_data = data['data']
         
-        # Helper function to parse boss data blocks (rank, killcount)
-        def parse_boss_block(index):
-            return {
-                'rank': int(data_list[index]),
-                'killcount': int(data_list[index + 1]),
-            }
+        # --- Parse Skills ---
+        parsed_skills = {}
+        skill_names = [
+            'Overall', 'Attack', 'Defence', 'Strength', 'Hitpoints', 'Ranged', 'Prayer',
+            'Magic', 'Cooking', 'Woodcutting', 'Fletching', 'Fishing', 'Firemaking',
+            'Crafting', 'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving',
+            'Slayer', 'Farming', 'Runecraft', 'Hunter', 'Construction'
+        ]
 
-        # The full list of skills and their starting index in the CSV response
-        # NOTE: You MUST verify these indices with the latest TempleOSRS API documentation.
-        # This is based on a common structure but could change.
-        skills_and_indices = {
-            'overall': 2,
-            'attack': 5,
-            'defence': 8,
-            'strength': 11,
-            'hitpoints': 14,
-            'ranged': 17,
-            'prayer': 20,
-            'magic': 23,
-            'cooking': 26,
-            'woodcutting': 29,
-            'fletching': 32,
-            'fishing': 35,
-            'firemaking': 38,
-            'crafting': 41,
-            'smithing': 44,
-            'mining': 47,
-            'herblore': 50,
-            'agility': 53,
-            'thieving': 56,
-            'slayer': 59,
-            'farming': 62,
-            'runecrafting': 65,
-            'hunter': 68,
-            'construction': 71,
-        }
+        for skill_name in skill_names:
+            skill_key = skill_name.lower()
+            if skill_name in player_data:
+                # Use .get() with a default value to prevent KeyErrors
+                rank = player_data.get(f'{skill_name}_rank', 0)
+                level = player_data.get(f'{skill_name}_level', 0)
+                xp = player_data.get(skill_name, 0)
+                
+                parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
+            
+        # --- Boss parsing is no longer needed if the API doesn't provide it in the same way ---
+        # The provided response does not have separate boss entries.
+        parsed_bosses = {}
 
-        # The full list of bosses and their starting index
-        bosses_and_indices = {
-            'abyssal_sire': 74,
-            'alchemical_hydra': 77,
-            'barrows_chests': 80,
-            'bryophyta': 83,
-            # ... continue for all bosses you want to track
-        }
-        
-        # Start building the final data dictionary
-        stats_data = {
-            'player_name': data_list[0],
-            'timestamp': data_list[1],
-            'skills': {},
-            'bosses': {},
-        }
 
-        # Parse skills
-        for skill_name, index in skills_and_indices.items():
-            # Skill data is (rank, level, xp)
-            stats_data['skills'][skill_name] = parse_skill_block(index)
-
-        # Parse bosses
-        for boss_name, index in bosses_and_indices.items():
-            # Boss data is (rank, killcount, EHP)
-            stats_data['bosses'][boss_name] = {
-                'rank': int(data_list[index]),
-                'killcount': int(data_list[index + 1]),
-            }
-        
-        return stats_data
+        # Create and return a PlayerStats object
+        return PlayerStats(
+            player_name=player_info['Username'],
+            timestamp=player_info['Last checked'],
+            skills=parsed_skills,
+            bosses=parsed_bosses,
+        )
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data for {player_name}: {e}")
         return None
-    except (IndexError, ValueError) as e:
-        # Catch errors if the API response is malformed or indices are wrong
-        print(f"Error parsing data for {player_name}: {e}")
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error parsing JSON data for {player_name}: {e}")
         return None

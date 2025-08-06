@@ -1,4 +1,8 @@
+<!-- stats_app/templates/stats_app/player_stats.html -->
+
 {% extends 'stats_app/base.html' %}
+{% load humanize %} {# Load humanize for intcomma filter #}
+{% load custom_filters %}
 
 {% block title %}Group Ironman Stats - {{ block.super }}{% endblock %}
 
@@ -12,11 +16,13 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ player.player_name }}</h5>
                     <p class="card-text">
+                        {# Accessing attributes of the Skill object for 'overall' #}
                         <strong>Overall Level:</strong> {{ player.skills.overall.level }}<br>
                         <strong>Overall XP:</strong> {{ player.skills.overall.xp|intcomma }}<br>
                         <strong>Overall Rank:</strong> {{ player.skills.overall.rank|intcomma }}
                     </p>
                     
+                    <!-- Accordion for Skills -->
                     <div class="accordion" id="accordion-skills-{{ forloop.counter }}">
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="heading-skills-{{ forloop.counter }}">
@@ -27,13 +33,13 @@
                             <div id="collapse-skills-{{ forloop.counter }}" class="accordion-collapse collapse show" aria-labelledby="heading-skills-{{ forloop.counter }}" data-bs-parent="#accordion-skills-{{ forloop.counter }}">
                                 <div class="accordion-body p-0">
                                     <ul class="list-group list-group-flush">
-                                    {% for skill_name, skill_data in player.skills.items %}
+                                    {% for skill_name, skill_obj in player.skills.items %} {# skill_obj is now a Skill object #}
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <strong>{{ skill_name|capfirst }}</strong>
-                                                <small class="text-muted d-block">Level: {{ skill_data.level }}, XP: {{ skill_data.xp|intcomma }}</small>
+                                                <strong>{{ skill_name|capfirst|replace:"_," }}</strong> {# Using replace filter if you implement it #}
+                                                <small class="text-muted d-block">Level: {{ skill_obj.level }}, XP: {{ skill_obj.xp|intcomma }}</small>
                                             </div>
-                                            <span class="badge bg-primary rounded-pill">Rank: {{ skill_data.rank|intcomma }}</span>
+                                            <span class="badge bg-primary rounded-pill">Rank: {{ skill_obj.rank|intcomma }}</span>
                                         </li>
                                     {% empty %}
                                         <li class="list-group-item">No skill data found.</li>
@@ -44,6 +50,7 @@
                         </div>
                     </div>
 
+                    <!-- Accordion for Bosses -->
                     <div class="accordion mt-3" id="accordion-bosses-{{ forloop.counter }}">
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="heading-bosses-{{ forloop.counter }}">
@@ -54,12 +61,13 @@
                             <div id="collapse-bosses-{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading-bosses-{{ forloop.counter }}" data-bs-parent="#accordion-bosses-{{ forloop.counter }}">
                                 <div class="accordion-body p-0">
                                     <ul class="list-group list-group-flush">
-                                    {% for boss_name, boss_data in player.bosses.items %}
+                                    {% for boss_name, boss_obj in player.bosses.items %} {# boss_obj is now a Boss object #}
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <strong>{{ boss_name|capfirst|replace:"_":" " }}</strong>
+                                                <strong>{{ boss_name|capfirst|replace:"_," }}</strong> {# Using replace filter if you implement it #}
                                             </div>
-                                            <span class="badge bg-primary rounded-pill">KC: {{ boss_data.killcount|intcomma }}</span>
+                                            <span class="badge bg-primary rounded-pill">KC: {{ boss_obj.killcount|intcomma }}</span>
+                                            <span class="badge bg-secondary rounded-pill">Rank: {{ boss_obj.rank|intcomma }}</span>
                                         </li>
                                     {% empty %}
                                         <li class="list-group-item">No boss data found.</li>

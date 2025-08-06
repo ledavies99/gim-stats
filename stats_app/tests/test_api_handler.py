@@ -45,10 +45,6 @@ mock_models.PlayerStatsCache = MockPlayerStatsCache
 
 sys.modules["stats_app.models"] = mock_models
 
-mock_timezone = types.ModuleType("django.utils.timezone")
-mock_timezone.now = datetime.datetime.now
-sys.modules["django.utils.timezone"] = mock_timezone
-
 from stats_app.api_handler import get_player_stats, PlayerStats
 
 class MockResponse:

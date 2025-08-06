@@ -1,6 +1,50 @@
 import pytest
 import json
+import datetime
 from requests.exceptions import RequestException
+
+import sys
+import types
+
+# --- Mock Django models and timezone ---
+mock_models = types.ModuleType("stats_app.models")
+
+class MockGroupMember:
+    class DoesNotExist(Exception): pass
+    class Objects:
+        @staticmethod
+        def get(player_name=None):
+            if player_name == "TestPlayer":
+                return MockGroupMember()
+            raise MockGroupMember.DoesNotExist()
+    objects = Objects()
+
+class MockPlayerStatsCache:
+    class DoesNotExist(Exception): pass
+
+    class Objects:
+        @staticmethod
+        def get(group_member=None):
+            # Always raise DoesNotExist to simulate no cache
+            raise MockPlayerStatsCache.DoesNotExist()
+        @staticmethod
+        def create(group_member=None, data=None):
+            cache = MockPlayerStatsCache()
+            cache.timestamp = datetime.datetime.now()
+            cache.data = data
+            return cache
+
+    objects = Objects()
+
+    def __init__(self):
+        self.timestamp = None
+        self.data = None
+
+mock_models.GroupMember = MockGroupMember
+mock_models.PlayerStatsCache = MockPlayerStatsCache
+
+sys.modules["stats_app.models"] = mock_models
+
 from stats_app.api_handler import get_player_stats, PlayerStats
 
 class MockResponse:

@@ -1,0 +1,53 @@
+{% extends 'stats_app/base.html' %}
+
+{% block title %}Group Ironman Stats - {{ block.super }}{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Group Ironman Stats</h1>
+
+    <div class="row">
+    {% for player in players %}
+        <div class="col-md-4 mb-4">
+            <div class="card player-card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ player.info.Username }}</h5>
+                    <p class="card-text">
+                        <strong>Overall Rank:</strong> {{ player.overall.rank }}<br>
+                        <strong>Total Level:</strong> {{ player.overall.level }}<br>
+                        <strong>Total XP:</strong> {{ player.overall.xp }}
+                    </p>
+
+                    <div class="accordion" id="accordion-{{ forloop.counter }}">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading-{{ forloop.counter }}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse-{{ forloop.counter }}">
+                                    View All Skills
+                                </button>
+                            </h2>
+                            <div id="collapse-{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ forloop.counter }}" data-bs-parent="#accordion-{{ forloop.counter }}">
+                                <div class="accordion-body p-0">
+                                    <ul class="list-group list-group-flush">
+                                    {% for skill_name, skill_data in player.skills.items %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ skill_name|capfirst }}</strong>
+                                                <small class="text-muted d-block">Level: {{ skill_data.level }}, XP: {{ skill_data.xp }}</small>
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">Rank: {{ skill_data.rank }}</span>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <p>No player data could be retrieved.</p>
+        </div>
+    {% endfor %}
+    </div>
+{% endblock %}

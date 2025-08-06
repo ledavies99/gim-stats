@@ -36,15 +36,20 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 if os.environ.get('ALLOWED_HOST'):
     ALLOWED_HOSTS.append(os.environ.get('ALLOWED_HOST'))
 
-# --- DATABASE CONFIGURATION ---
-# Use the DATABASE_URL environment variable from Render if it exists,
-# otherwise fall back to a local SQLite database.
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600
-    )
-}
+# Configure the database
+# Use the DATABASE_URL environment variable for production
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(conn_max_age=600)
+    }
+else:
+    # Use SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # --- STATIC FILES CONFIGURATION ---
 STATIC_URL = '/static/'

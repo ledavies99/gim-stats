@@ -9,3 +9,6 @@ media/
 # Python specific
 __pycache__/
 *.pyc
+
+# VScode specific
+.vscode/

@@ -2,11 +2,15 @@
 
 from django.shortcuts import render
 from .api_handler import get_player_stats
+from .models import GroupMember # Import your new model
 
 def player_stats_view(request):
-    # A list of your group's player names
-    player_names = ["Bogsloppit", "BonskFEey", "Shiba Jab"]
-    
+    # Retrieve all GroupMember objects from the database
+    group_members = GroupMember.objects.all()
+
+    # Extract the player names from the objects
+    player_names = [member.player_name for member in group_members]
+
     all_players_data = []
 
     for name in player_names:

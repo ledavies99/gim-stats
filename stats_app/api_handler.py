@@ -1,108 +1,85 @@
 # stats_app/api_handler.py
 
 import requests
+import json
+
+class Skill:
+    """Represents a single Old School RuneScape skill's data."""
+    def __init__(self, rank: int, level: int, xp: int):
+        self.rank = rank
+        self.level = level
+        self.xp = xp
+
+class Boss:
+    """Represents a single Old School RuneScape boss's data."""
+    def __init__(self, rank: int, killcount: int):
+        self.rank = rank
+        self.killcount = killcount
+
+class PlayerStats:
+    """Represents all parsed stats for a single Old School RuneScape player."""
+    def __init__(self, player_name: str, timestamp: str, skills: dict, bosses: dict):
+        self.player_name = player_name
+        self.timestamp = timestamp
+        self.skills = skills # A dictionary of Skill objects
+        self.bosses = bosses # A dictionary of Boss objects
 
 def get_player_stats(player_name):
     """
-    Fetches player stats from the TempleOSRS API.
-    Parses the CSV response into a dictionary.
-    Returns a dictionary of stats or None if the player isn't found.
+    Fetches and parses all player stats from the TempleOSRS API's JSON response.
+    Returns a PlayerStats object or None if the player isn't found.
     """
     url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
 
     try:
         response = requests.get(url)
         response.raise_for_status()
+        
+        # The API now returns a JSON object. We use .json() to parse it.
+        data = response.json()
 
-        data_list = response.text.split(',')
-
-        # Quick check for valid response
-        if len(data_list) < 50:
+        # Check if the API returned an error or empty data
+        if 'error' in data or not data.get('data'):
             return None
 
-        # Parse info block (first element is a JSON-like string)
-        info_raw = data_list[0]
-        info_str = info_raw.replace('{"data":{"info":{', '').replace('}}', '')
-        info = {}
-        for item in info_str.split('","'):
-            item = item.replace('"', '')
-            if '":"' in item:
-                key, value = item.split('":"', 1)
-                info[key] = value
-            elif ':' in item:
-                key, value = item.split(':', 1)
-                info[key] = value
-            else:
-                info[item] = None  # Handle keys with no value
-
-        # Find the index of the date field
-        date_idx = None
-        for i, item in enumerate(data_list):
-            if item.startswith('"date":'):
-                date_idx = i
-                break
-        if date_idx is None:
-            print("Date field not found in data_list")
-            return None
-
-        # Parse date
-        date = data_list[date_idx].replace('"date":"', '').replace('"', '')
-
-        # Overall stats
-        overall = {
-            'xp': int(data_list[date_idx+1].replace('"Overall":', '')),
-            'rank': int(data_list[date_idx+2].replace('"Overall_rank":', '')),
-            'level': int(data_list[date_idx+3].replace('"Overall_level":', '')),
-            'ehp': float(data_list[date_idx+4].replace('"Overall_ehp":', ''))
-        }
-
-        # Skill order and offsets
-        skills = [
-            'Attack', 'Defence', 'Strength', 'Hitpoints', 'Ranged', 'Prayer', 'Magic',
-            'Cooking', 'Woodcutting', 'Fletching', 'Fishing', 'Firemaking', 'Crafting',
-            'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving', 'Slayer',
-            'Farming', 'Runecraft', 'Hunter', 'Construction'
+        player_info = data['data']['info']
+        player_data = data['data']
+        
+        # --- Parse Skills ---
+        parsed_skills = {}
+        skill_names = [
+            'Overall', 'Attack', 'Defence', 'Strength', 'Hitpoints', 'Ranged', 'Prayer',
+            'Magic', 'Cooking', 'Woodcutting', 'Fletching', 'Fishing', 'Firemaking',
+            'Crafting', 'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving',
+            'Slayer', 'Farming', 'Runecraft', 'Hunter', 'Construction'
         ]
-        skills_data = {}
-        offset = date_idx + 5
-        for skill in skills:
-            try:
-                xp = int(data_list[offset].replace(f'"{skill}":', ''))
-                rank = int(data_list[offset+1].replace(f'"{skill}_rank":', ''))
-                level = int(data_list[offset+2].replace(f'"{skill}_level":', ''))
-                ehp = float(data_list[offset+3].replace(f'"{skill}_ehp":', ''))
-            except Exception as e:
-                print(f"Error parsing skill {skill} at offset {offset}: {e}")
-                xp, rank, level, ehp = None, None, None, None
-            skills_data[skill.lower()] = {
-                'xp': xp,
-                'rank': rank,
-                'level': level,
-                'ehp': ehp
-            }
-            offset += 4
 
-        # EHP and ranks (at the end)
-        ehp = float(data_list[offset].replace('"Ehp":', ''))
-        ehp_rank = int(data_list[offset+1].replace('"Ehp_rank":', ''))
+        for skill_name in skill_names:
+            skill_key = skill_name.lower()
+            if skill_name in player_data:
+                # Use .get() with a default value to prevent KeyErrors
+                rank = player_data.get(f'{skill_name}_rank', 0)
+                level = player_data.get(f'{skill_name}_level', 0)
+                xp = player_data.get(skill_name, 0)
+                
+                parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
+            
+        # --- Boss parsing is no longer needed if the API doesn't provide it in the same way ---
+        # The provided response does not have separate boss entries.
+        parsed_bosses = {}
 
-        stats_data = {
-            'info': info,
-            'date': date,
-            'overall': overall,
-            'skills': skills_data,
-            'ehp': ehp,
-            'ehp_rank': ehp_rank
-        }
 
-        return stats_data
+        # Create and return a PlayerStats object
+        return PlayerStats(
+            player_name=player_info['Username'],
+            timestamp=player_info['Last checked'],
+            skills=parsed_skills,
+            bosses=parsed_bosses,
+        )
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data for {player_name}: {e}")
         return None
-    except Exception as e:
-        print(f"Error parsing data for {player_name}: {e}")
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error parsing JSON data for {player_name}: {e}")
         return None
-
-stats = get_player_stats('Bogsloppit')  # Example call to test the function
-print(stats)  # Print the stats to verify

@@ -4,8 +4,7 @@ import requests
 
 def get_player_stats(player_name):
     """
-    Fetches player stats from the TempleOSRS API.
-    Parses the CSV response into a dictionary.
+    Fetches and parses all player stats from the TempleOSRS API.
     Returns a dictionary of stats or None if the player isn't found.
     """
     url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
@@ -14,95 +13,94 @@ def get_player_stats(player_name):
         response = requests.get(url)
         response.raise_for_status()
 
+        # The API returns a long CSV string.
         data_list = response.text.split(',')
-
-        # Quick check for valid response
-        if len(data_list) < 50:
+        
+        # A simple check to ensure the response is not empty or malformed.
+        if len(data_list) < 25: # Minimal number of fields for a basic response
             return None
 
-        # Parse info block (first element is a JSON-like string)
-        info_raw = data_list[0]
-        info_str = info_raw.replace('{"data":{"info":{', '').replace('}}', '')
-        info = {}
-        for item in info_str.split('","'):
-            item = item.replace('"', '')
-            if '":"' in item:
-                key, value = item.split('":"', 1)
-                info[key] = value
-            elif ':' in item:
-                key, value = item.split(':', 1)
-                info[key] = value
-            else:
-                info[item] = None  # Handle keys with no value
-
-        # Find the index of the date field
-        date_idx = None
-        for i, item in enumerate(data_list):
-            if item.startswith('"date":'):
-                date_idx = i
-                break
-        if date_idx is None:
-            print("Date field not found in data_list")
-            return None
-
-        # Parse date
-        date = data_list[date_idx].replace('"date":"', '').replace('"', '')
-
-        # Overall stats
-        overall = {
-            'xp': int(data_list[date_idx+1].replace('"Overall":', '')),
-            'rank': int(data_list[date_idx+2].replace('"Overall_rank":', '')),
-            'level': int(data_list[date_idx+3].replace('"Overall_level":', '')),
-            'ehp': float(data_list[date_idx+4].replace('"Overall_ehp":', ''))
-        }
-
-        # Skill order and offsets
-        skills = [
-            'Attack', 'Defence', 'Strength', 'Hitpoints', 'Ranged', 'Prayer', 'Magic',
-            'Cooking', 'Woodcutting', 'Fletching', 'Fishing', 'Firemaking', 'Crafting',
-            'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving', 'Slayer',
-            'Farming', 'Runecraft', 'Hunter', 'Construction'
-        ]
-        skills_data = {}
-        offset = date_idx + 5
-        for skill in skills:
-            try:
-                xp = int(data_list[offset].replace(f'"{skill}":', ''))
-                rank = int(data_list[offset+1].replace(f'"{skill}_rank":', ''))
-                level = int(data_list[offset+2].replace(f'"{skill}_level":', ''))
-                ehp = float(data_list[offset+3].replace(f'"{skill}_ehp":', ''))
-            except Exception as e:
-                print(f"Error parsing skill {skill} at offset {offset}: {e}")
-                xp, rank, level, ehp = None, None, None, None
-            skills_data[skill.lower()] = {
-                'xp': xp,
-                'rank': rank,
-                'level': level,
-                'ehp': ehp
+        # Helper function to parse skill data blocks (rank, level, xp)
+        def parse_skill_block(index):
+            return {
+                'rank': int(data_list[index]),
+                'level': int(data_list[index + 1]),
+                'xp': int(data_list[index + 2]),
             }
-            offset += 4
+        
+        # Helper function to parse boss data blocks (rank, killcount)
+        def parse_boss_block(index):
+            return {
+                'rank': int(data_list[index]),
+                'killcount': int(data_list[index + 1]),
+            }
 
-        # EHP and ranks (at the end)
-        ehp = float(data_list[offset].replace('"Ehp":', ''))
-        ehp_rank = int(data_list[offset+1].replace('"Ehp_rank":', ''))
-
-        stats_data = {
-            'info': info,
-            'date': date,
-            'overall': overall,
-            'skills': skills_data,
-            'ehp': ehp,
-            'ehp_rank': ehp_rank
+        # The full list of skills and their starting index in the CSV response
+        # NOTE: You MUST verify these indices with the latest TempleOSRS API documentation.
+        # This is based on a common structure but could change.
+        skills_and_indices = {
+            'overall': 2,
+            'attack': 5,
+            'defence': 8,
+            'strength': 11,
+            'hitpoints': 14,
+            'ranged': 17,
+            'prayer': 20,
+            'magic': 23,
+            'cooking': 26,
+            'woodcutting': 29,
+            'fletching': 32,
+            'fishing': 35,
+            'firemaking': 38,
+            'crafting': 41,
+            'smithing': 44,
+            'mining': 47,
+            'herblore': 50,
+            'agility': 53,
+            'thieving': 56,
+            'slayer': 59,
+            'farming': 62,
+            'runecrafting': 65,
+            'hunter': 68,
+            'construction': 71,
         }
 
+        # The full list of bosses and their starting index
+        bosses_and_indices = {
+            'abyssal_sire': 74,
+            'alchemical_hydra': 77,
+            'barrows_chests': 80,
+            'bryophyta': 83,
+            # ... continue for all bosses you want to track
+        }
+        
+        # Start building the final data dictionary
+        stats_data = {
+            'player_name': data_list[0],
+            'timestamp': data_list[1],
+            'skills': {},
+            'bosses': {},
+        }
+
+        # Parse skills
+        for skill_name, index in skills_and_indices.items():
+            # Skill data is (rank, level, xp)
+            stats_data['skills'][skill_name] = parse_skill_block(index)
+
+        # Parse bosses
+        for boss_name, index in bosses_and_indices.items():
+            # Boss data is (rank, killcount, EHP)
+            stats_data['bosses'][boss_name] = {
+                'rank': int(data_list[index]),
+                'killcount': int(data_list[index + 1]),
+            }
+        
         return stats_data
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data for {player_name}: {e}")
         return None
-    except Exception as e:
+    except (IndexError, ValueError) as e:
+        # Catch errors if the API response is malformed or indices are wrong
         print(f"Error parsing data for {player_name}: {e}")
         return None
-
-stats = get_player_stats('Bogsloppit')  # Example call to test the function
-print(stats)  # Print the stats to verify

@@ -23,23 +23,20 @@
 
                     <div class="skill-grid">
                         {% for skill_name, skill_data in player.skills.items %}
-                            {% if skill_name != 'overall' %}
+                            {% if skill_name != 'overall' and skill_data.level > 0 %}
                                 <div class="skill-item">
                                     <img class="skill-icon" src="{% static 'images/'|add:skill_name|add:'.png' %}" alt="{{ skill_name }}">
                                     <span class="skill-level">{{ skill_data.level }}</span>
                                 </div>
                             {% endif %}
                         {% endfor %}
-                    </div>
 
-                    <div class="overall-stats">
-                        <div class="overall-item">
-                            <span class="overall-label">Overall Level:</span>
-                            <span class="overall-value">{{ player.skills.overall.level }}</span>
-                        </div>
-                        <div class="overall-item">
-                            <span class="overall-label">Overall XP:</span>
-                            <span class="overall-value">{{ player.skills.overall.xp }}</span>
+                        <div class="overall-stats">
+                            <div class="overall-stats-text">
+                                <span class="overall-label">Total level:</span>
+                                <br>
+                                <span class="overall-value">{{ player.skills.overall.level }}</span>
+                            </div>
                         </div>
                     </div>
                 </section>

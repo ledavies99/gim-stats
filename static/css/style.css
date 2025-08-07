@@ -1,36 +1,125 @@
 /* Container for the entire skill grid */
 .skill-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px; /* Space between skill items */
-    max-width: 600px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    max-width: 320px;
     margin: 20px auto;
     padding: 10px;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+}
+
+/* Overall stats container */
+.overall-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: #3f3e3a;
-    border: 2px solid #5a5752;
+    padding: 2px 5px;
+    height: 38px;
+    
+    /* This places the box in the third column of the grid */
+    grid-column: 3;
 }
 
 /* Individual skill item */
 .skill-item {
     display: flex;
     align-items: center;
-    background-color: #5a5752;
-    padding: 5px 10px;
-    border-radius: 5px;
-    min-width: 150px;
+    justify-content: space-between;
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
 }
 
 /* Skill icon image */
 .skill-icon {
     width: 30px;
     height: 30px;
-    margin-right: 10px;
 }
 
 /* Skill level text */
 .skill-level {
-    font-size: 1.2em;
+    font-size: 1em;
     font-weight: bold;
-    color: #ffd700; /* Gold color for the level */
+    color: #ffd700;
+}
+
+/* Styling for the text container inside the overall stats box */
+.overall-stats-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+/* Overall label */
+.overall-label {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 0; /* This removes the default margin */
+}
+
+/* Overall value */
+.overall-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: -20px 0 0; /* Adjust this negative margin to control the spacing */
+}
+
+/* The rest of the CSS for the page layout */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2c2925;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #3f3e3a;
+    border-bottom: 2px solid #5a5752;
+}
+
+h1 {
+    margin: 0;
+    color: #ffd700;
+}
+
+main {
+    display: flex;
+    flex-wrap: wrap; /* Allows the grids to wrap to a new line if they don't fit */
+    justify-content: center; /* Centers the grids horizontally */
+    gap: 20px; /* Adds a gap between each player card */
+    padding: 20px;
+}
+
+.player-card {
+    /* Adjust this to set the width of each grid */
+    flex: 0 0 auto; 
+    max-width: 320px; /* This should match the skill-grid's max-width */
+    background-color: #3f3e3a;
+    border: 2px solid #5a5752;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+h2 {
+    color: #ffd700;
+    margin-top: 0;
+}
+
+p {
+    color: #b0a89d;
+}
+
+.overall-stats-placeholder {
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
 }

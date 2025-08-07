@@ -1,90 +1,57 @@
-<!-- stats_app/templates/stats_app/player_stats.html -->
+{% load static %}
 
-{% extends 'stats_app/base.html' %}
-{% load humanize %} {# Load humanize for intcomma filter #}
-{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIM Stats</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
 
-{% block title %}Group Ironman Stats - {{ block.super }}{% endblock %}
+    <header>
+        <h1>GIM Group Stats</h1>
+    </header>
 
-{% block content %}
-    <h1 class="mb-4">Group Ironman Stats</h1>
-    
-    <div class="row">
-    {% for player in players %}
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card player-card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ player.player_name }}</h5>
-                    <p class="card-text">
-                        {# Accessing attributes of the Skill object for 'overall' #}
-                        <strong>Overall Level:</strong> {{ player.skills.overall.level }}<br>
-                        <strong>Overall XP:</strong> {{ player.skills.overall.xp|humanize_number  }}<br>
-                        <strong>Overall Rank:</strong> {{ player.skills.overall.rank|intcomma }}
-                    </p>
-                    
-                    <!-- Accordion for Skills -->
-                    <div class="accordion" id="accordion-skills-{{ forloop.counter }}">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="heading-skills-{{ forloop.counter }}">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-skills-{{ forloop.counter }}" aria-expanded="true" aria-controls="collapse-skills-{{ forloop.counter }}">
-                                    Skills
-                                </button>
-                            </h2>
-                            <div id="collapse-skills-{{ forloop.counter }}" class="accordion-collapse collapse show" aria-labelledby="heading-skills-{{ forloop.counter }}" data-bs-parent="#accordion-skills-{{ forloop.counter }}">
-                                <div class="accordion-body p-0">
-                                    <ul class="list-group list-group-flush">
-                                    {% for skill_name, skill_obj in player.skills.items %} {# skill_obj is now a Skill object #}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>{{ skill_name|capfirst|replace:"_," }}</strong> {# Using replace filter if you implement it #}
-                                                <small class="text-muted d-block">Level: {{ skill_obj.level }}, XP: {{ skill_obj.xp|humanize_number }}</small>
-                                            </div>
-                                            <span class="badge bg-primary rounded-pill">Rank: {{ skill_obj.rank|intcomma }}</span>
-                                        </li>
-                                    {% empty %}
-                                        <li class="list-group-item">No skill data found.</li>
-                                    {% endfor %}
-                                    </ul>
+    <main>
+        {% if players %}
+            {% for player in players %}
+                <section class="player-card">
+                    <h2>{{ player.player_name }}</h2>
+                    <p>Last updated: {{ player.timestamp }}</p>
+
+                    <div class="skill-grid">
+                        {% for skill_name, skill_data in player.skills.items %}
+                            {% if skill_name != 'overall' %}
+                                <div class="skill-item">
+                                    <img class="skill-icon" src="{% static 'images/'|add:skill_name|add:'.png' %}" alt="{{ skill_name }}">
+                                    <span class="skill-level">{{ skill_data.level }}</span>
                                 </div>
-                            </div>
-                        </div>
+                            {% endif %}
+                        {% endfor %}
                     </div>
 
-                    <!-- Accordion for Bosses -->
-                    <div class="accordion mt-3" id="accordion-bosses-{{ forloop.counter }}">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="heading-bosses-{{ forloop.counter }}">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-bosses-{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse-bosses-{{ forloop.counter }}">
-                                    Bosses
-                                </button>
-                            </h2>
-                            <div id="collapse-bosses-{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading-bosses-{{ forloop.counter }}" data-bs-parent="#accordion-bosses-{{ forloop.counter }}">
-                                <div class="accordion-body p-0">
-                                    <ul class="list-group list-group-flush">
-                                    {% for boss_name, boss_obj in player.bosses.items %} {# boss_obj is now a Boss object #}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>{{ boss_name|capfirst|replace:"_," }}</strong> {# Using replace filter if you implement it #}
-                                            </div>
-                                            <span class="badge bg-primary rounded-pill">KC: {{ boss_obj.killcount|humanize_number }}</span>
-                                            <span class="badge bg-secondary rounded-pill">Rank: {{ boss_obj.rank|intcomma }}</span>
-                                        </li>
-                                    {% empty %}
-                                        <li class="list-group-item">No boss data found.</li>
-                                    {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
+                    <div class="overall-stats">
+                        <div class="overall-item">
+                            <span class="overall-label">Overall Level:</span>
+                            <span class="overall-value">{{ player.skills.overall.level }}</span>
+                        </div>
+                        <div class="overall-item">
+                            <span class="overall-label">Overall XP:</span>
+                            <span class="overall-value">{{ player.skills.overall.xp }}</span>
                         </div>
                     </div>
+                </section>
+            {% endfor %}
+        {% else %}
+            <p>No player data could be retrieved. Please check your internet connection or if players have been added to the database.</p>
+        {% endif %}
+    </main>
 
-                </div>
-            </div>
-        </div>
-    {% empty %}
-        <div class="col-12">
-            <p>No player data could be retrieved.</p>
-        </div>
-    {% endfor %}
-    </div>
-{% endblock %}
+    <footer>
+        <p>&copy; 2025 GIM Stats</p>
+    </footer>
+
+</body>
+</html>

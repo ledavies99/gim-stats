@@ -1,0 +1,36 @@
+/* Container for the entire skill grid */
+.skill-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px; /* Space between skill items */
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 10px;
+    background-color: #3f3e3a;
+    border: 2px solid #5a5752;
+}
+
+/* Individual skill item */
+.skill-item {
+    display: flex;
+    align-items: center;
+    background-color: #5a5752;
+    padding: 5px 10px;
+    border-radius: 5px;
+    min-width: 150px;
+}
+
+/* Skill icon image */
+.skill-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+/* Skill level text */
+.skill-level {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffd700; /* Gold color for the level */
+}

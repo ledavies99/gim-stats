@@ -31,6 +31,9 @@
     background-color: #3f3e3a;
     padding: 2px 5px;
     height: 38px;
+
+    /* These are new lines for the XP hover effect */
+    position: relative; 
 }
 
 /* Skill icon image */
@@ -52,6 +55,9 @@
     flex-direction: column;
     align-items: center;
     gap: 0;
+
+    /* New: This is for positioning the total XP tooltip */
+    position: relative;
 }
 
 /* Overall label */
@@ -122,4 +128,50 @@ p {
     background-color: #3f3e3a;
     padding: 2px 5px;
     height: 38px;
+}
+
+/* New CSS for the XP hover effect */
+.skill-item::after {
+    content: "XP: " attr(data-xp);
+    position: absolute;
+    top: -25px; /* Adjust this to control the vertical position */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0; /* Hidden by default */
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.skill-item:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* New CSS for the Total XP hover effect */
+.overall-stats-text::after {
+    content: "Total XP: " attr(data-xp); /* Gets the XP value from the data-xp attribute */
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.overall-stats-text:hover::after {
+    opacity: 1;
+    visibility: visible;
 }

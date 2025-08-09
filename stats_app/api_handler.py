@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache
 from django.core.serializers.json import DjangoJSONEncoder
+from requests.exceptions import RequestException # Add this import
 
 
 class Skill:
@@ -44,14 +45,17 @@ def fetch_player_stats_from_api(player_name):
 def get_player_stats(player_name):
     """
     Fetches and parses player stats, using caching to avoid repeated API calls.
+    Gracefully falls back to cached data if the API call fails.
     """
+    api_response = None
+    member = None
+
     try:
         member = GroupMember.objects.get(player_name=player_name)
     except GroupMember.DoesNotExist:
         print(f"Error: Group member '{player_name}' not found in the database.")
         return None
 
-    # Check for cached data
     try:
         cache = PlayerStatsCache.objects.get(group_member=member)
         # Try to fetch new data if cache is stale (or on error)
@@ -86,20 +90,10 @@ def get_player_stats(player_name):
             print(f"API request failed for {player_name}: {e}. Cannot display stats.")
             return None
 
-            # Update the cache
-            cache.data = api_response
-            cache.save()
-    except PlayerStatsCache.DoesNotExist:
-        # No cached data exists, fetch a new response
-        print(f"No cached data for {player_name}. Fetching new data...")
-        url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
-        response = requests.get(url)
-        response.raise_for_status()
-        api_response = response.json()
+    if not api_response:
+        return None
 
-        # Create a new cache entry
-        PlayerStatsCache.objects.create(group_member=member, data=api_response)
-
+    # Parsing the API response
     player_info = api_response['data']['info']
     player_data = api_response['data']
 

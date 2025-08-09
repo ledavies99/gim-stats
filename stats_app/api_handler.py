@@ -26,6 +26,10 @@ class PlayerStats:
         self.bosses = bosses
 
 
+def load_config():
+    with open('config.json', 'r') as f:
+        return json.load(f)
+
 def fetch_player_stats_from_api(player_name):
     """
     Fetch player stats from the TempleOSRS API.
@@ -99,101 +103,17 @@ def get_player_stats(player_name):
     player_info = api_response['data']['info']
     player_data = api_response['data']
 
-    parsed_skills = {}
-    skill_names = [
-        'Attack', 'Hitpoints', 'Mining', 
-        'Strength', 'Agility', 'Smithing', 
-        'Defence','Herblore', 'Fishing', 
-        'Ranged', 'Thieving', 'Cooking', 
-        'Prayer', 'Crafting','Firemaking', 
-        'Magic', 'Fletching', 'Woodcutting', 
-        'Runecraft', 'Slayer', 'Farming',
-        'Construction', 'Hunter', 'Overall'
-    ]
+    config = load_config()
+    skill_names = config.get("skills", [])
+    boss_names = config.get("bosses", [])
 
+    parsed_skills = {}
     for skill_name in skill_names:
         skill_key = skill_name.lower()
         rank = player_data.get(f'{skill_name}_rank', 0)
         level = player_data.get(f'{skill_name}_level', 0)
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
-
-    boss_names = [
-        "Abyssal Sire",
-        "Alchemical Hydra",
-        "Barrows Chests",
-        "Bryophyta",
-        "Callisto",
-        "Cerberus",
-        "Chambers of Xeric",
-        "Chambers of Xeric Challenge Mode",
-        "Chaos Elemental",
-        "Chaos Fanatic",
-        "Commander Zilyana",
-        "Corporeal Beast",
-        "Crazy Archaeologist",
-        "Dagannoth Prime",
-        "Dagannoth Rex",
-        "Dagannoth Supreme",
-        "Deranged Archaeologist",
-        "General Graardor",
-        "Giant Mole",
-        "Grotesque Guardians",
-        "Hespori",
-        "Kalphite Queen",
-        "King Black Dragon",
-        "Kraken",
-        "KreeArra",
-        "Kril Tsutsaroth",
-        "Mimic",
-        "Obor",
-        "Sarachnis",
-        "Scorpia",
-        "Skotizo",
-        "The Gauntlet",
-        "The Corrupted Gauntlet",
-        "Theatre of Blood",
-        "Thermonuclear Smoke Devil",
-        "TzKal-Zuk",
-        "TzTok-Jad",
-        "Venenatis",
-        "Vetion",
-        "Vorkath",
-        "Wintertodt",
-        "Zalcano",
-        "Zulrah",
-        "The Nightmare",
-        "Soul Wars Zeal",
-        "Tempoross",
-        "Theatre of Blood Challenge Mode",
-        "Bounty Hunter Hunter",
-        "Bounty Hunter Rogue",
-        "Phosanis Nightmare",
-        "Nex",
-        "Rift",
-        "PvP Arena",
-        "Tombs of Amascut",
-        "Tombs of Amascut Expert",
-        "Phantom Muspah",
-        "Artio",
-        "Calvarion",
-        "Spindel",
-        "Duke Sucellus",
-        "The Leviathan",
-        "The Whisperer",
-        "Vardorvis",
-        "Scurrius",
-        "Colosseum Glory",
-        "Lunar Chests",
-        "Sol Heredit",
-        "Araxxor",
-        "Hueycoatl",
-        "Amoxliatl",
-        "Collections",
-        "The Royal Titans",
-        "Yama",
-        "Doom of Mokhaiotl",
-    ]
 
     parsed_bosses = {}
     for boss_name in boss_names:
@@ -203,7 +123,7 @@ def get_player_stats(player_name):
         
 
     return PlayerStats(
-        player_name=player_info['Username'],
+        player_name=player_info['player_name_with_capitalization'],
         timestamp=player_info['Last checked'],
         skills=parsed_skills,
         bosses=parsed_bosses,

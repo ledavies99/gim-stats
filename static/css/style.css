@@ -155,16 +155,30 @@ main {
     border-radius: 5px;
 }
 
+/* Style the clickable header for the collapsible section */
 .collapsible-boss-stats summary {
     padding: 10px;
+    padding-left: 30px; /* IMPORTANT: Increased padding to make space for the arrow */
     font-weight: bold;
     color: #fff;
     cursor: pointer;
-    list-style: none;
+    list-style: none; /* Hides the default dropdown arrow */
     background-color: #3f3e3a;
     border-radius: 5px;
     position: relative;
     user-select: none;
+}
+
+/* Add a custom dropdown arrow using a pseudo-element */
+.collapsible-boss-stats summary::before {
+    content: '▶';
+    position: absolute;
+    left: 10px; /* Positions the arrow 10px from the left edge */
+    top: 50%;
+    transform: translateY(-50%); /* Centers the arrow vertically */
+    font-size: 0.8em;
+    color: #ffd700;
+    transition: transform 0.2s ease-in-out;
 }
 
 /* This is a more robust way to toggle the boss grid's visibility */
@@ -176,21 +190,21 @@ main {
     display: none;
 }
 
-.collapsible-boss-stats summary::before {
-    content: '▶';
-    position: absolute;
-    left: 10px;
-    font-size: 0.8em;
-    color: #ffd700;
-    transition: transform 0.2s ease-in-out;
-}
-
-/* The grid inside the collapsible section */
 .boss-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
     padding: 5px;
     background-color: #514b43;
+    border-radius: 5px;
+}
+
+.boss-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background-color: #3f3e3a;
+    border-radius: 3px;
 }
 
 /* Footer styling */

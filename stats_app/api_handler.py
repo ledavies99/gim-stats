@@ -123,7 +123,7 @@ def get_player_stats(player_name):
         
 
     return PlayerStats(
-        player_name=player_info['player_name_with_capitalization'],
+        player_name=player_info['Username'],
         timestamp=player_info['Last checked'],
         skills=parsed_skills,
         bosses=sorted_bosses_list,

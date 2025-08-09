@@ -1,82 +1,4 @@
-/* Container for the entire skill grid */
-.skill-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    max-width: 320px;
-    margin: 20px auto;
-    padding: 10px;
-    background-color: #514b43;
-    border: 1px solid #7c7365;
-}
-
-/* Overall stats container */
-.overall-stats {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #3f3e3a;
-    padding: 2px 5px;
-    height: 38px;
-    
-    /* This places the box in the third column of the grid */
-    grid-column: 3;
-}
-
-/* Individual skill item */
-.skill-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #3f3e3a;
-    padding: 2px 5px;
-    height: 38px;
-
-    /* These are new lines for the XP hover effect */
-    position: relative; 
-}
-
-/* Skill icon image */
-.skill-icon {
-    width: 30px;
-    height: 30px;
-}
-
-/* Skill level text */
-.skill-level {
-    font-size: 1em;
-    font-weight: bold;
-    color: #ffd700;
-}
-
-/* Styling for the text container inside the overall stats box */
-.overall-stats-text {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-
-    /* New: This is for positioning the total XP tooltip */
-    position: relative;
-}
-
-/* Overall label */
-.overall-label {
-    font-size: 1em;
-    font-weight: bold;
-    color: #ffd700;
-    margin: 0; /* This removes the default margin */
-}
-
-/* Overall value */
-.overall-value {
-    font-size: 1em;
-    font-weight: bold;
-    color: #ffd700;
-    margin: -20px 0 0; /* Adjust this negative margin to control the spacing */
-}
-
-/* The rest of the CSS for the page layout */
+/* Global Styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #2c2925;
@@ -97,24 +19,6 @@ h1 {
     color: #ffd700;
 }
 
-main {
-    display: flex;
-    flex-wrap: wrap; /* Allows the grids to wrap to a new line if they don't fit */
-    justify-content: center; /* Centers the grids horizontally */
-    gap: 20px; /* Adds a gap between each player card */
-    padding: 20px;
-}
-
-.player-card {
-    /* Adjust this to set the width of each grid */
-    flex: 0 0 auto; 
-    max-width: 320px; /* This should match the skill-grid's max-width */
-    background-color: #3f3e3a;
-    border: 2px solid #5a5752;
-    padding: 20px;
-    border-radius: 10px;
-}
-
 h2 {
     color: #ffd700;
     margin-top: 0;
@@ -124,38 +28,99 @@ p {
     color: #b0a89d;
 }
 
-.overall-stats-placeholder {
+main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+.player-card {
+    background-color: #2e2e2e;
+    border: 1px solid #7c7365;
+    border-radius: 5px;
+    width: 300px;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.skill-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 20px 0;
+    padding: 10px;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+}
+
+/* Overall stats box */
+.overall-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: #3f3e3a;
     padding: 2px 5px;
     height: 38px;
+    grid-column: 3;
 }
 
-/* New CSS for the XP hover effect */
-.skill-item::after {
+/* Individual skill item */
+.skill-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
+    position: relative;
+}
+
+/* Skill icon */
+.skill-icon {
+    width: 30px;
+    height: 30px;
+}
+
+/* Skill level */
+.skill-level {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* Overall stats text container */
+.overall-stats-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+}
+
+/* Overall label */
+.overall-label {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 0;
+}
+
+/* Overall value */
+.overall-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: -20px 0 0;
+}
+
+/* XP hover effect for skill items */
+.skill-item::after, .overall-stats-text::after {
     content: "XP: " attr(data-xp);
-    position: absolute;
-    top: -25px; /* Adjust this to control the vertical position */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #000;
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    opacity: 0; /* Hidden by default */
-    visibility: hidden;
-    transition: opacity 0.3s;
-    z-index: 1000;
-}
-
-.skill-item:hover::after {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* New CSS for the Total XP hover effect */
-.overall-stats-text::after {
-    content: "Total XP: " attr(data-xp); /* Gets the XP value from the data-xp attribute */
     position: absolute;
     top: -25px;
     left: 50%;
@@ -171,7 +136,67 @@ p {
     z-index: 1000;
 }
 
-.overall-stats-text:hover::after {
+.overall-stats-text::after {
+    content: "Total XP: " attr(data-xp);
+}
+
+.skill-item:hover::after, .overall-stats-text:hover::after {
     opacity: 1;
     visibility: visible;
+}
+
+/* Collapsible boss stats section */
+.collapsible-boss-stats {
+    margin-top: 10px;
+    /* IMPORTANT: Make sure this section takes up all available space to prevent layout issues */
+    flex-grow: 1;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+    border-radius: 5px;
+}
+
+.collapsible-boss-stats summary {
+    padding: 10px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    list-style: none;
+    background-color: #3f3e3a;
+    border-radius: 5px;
+    position: relative;
+    user-select: none;
+}
+
+/* This is a more robust way to toggle the boss grid's visibility */
+.collapsible-boss-stats[open] .boss-grid {
+    display: grid;
+}
+
+.collapsible-boss-stats:not([open]) .boss-grid {
+    display: none;
+}
+
+.collapsible-boss-stats summary::before {
+    content: '▶';
+    position: absolute;
+    left: 10px;
+    font-size: 0.8em;
+    color: #ffd700;
+    transition: transform 0.2s ease-in-out;
+}
+
+/* The grid inside the collapsible section */
+.boss-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    padding: 5px;
+    background-color: #514b43;
+}
+
+/* Footer styling */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #3f3e3a;
+    margin-top: 20px;
 }

@@ -40,6 +40,19 @@
                             </div>
                         </div>
                     </div>
+
+                    <details class="collapsible-boss-stats">
+                        <summary class="boss-grid-header">Bosses</summary>
+                        <div class="boss-grid">
+                            {% for boss_name, boss_data in player.bosses.items %}
+                                <div class="boss-item">
+                                    <span class="boss-name">{{ boss_name|title }}</span>
+                                    <span class="boss-killcount">{{ boss_data.killcount }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+
                 </section>
             {% endfor %}
         {% else %}

@@ -15,8 +15,7 @@ class Skill:
         self.xp = xp
 
 class Boss:
-    def __init__(self, rank: int, killcount: int):
-        self.rank = rank
+    def __init__(self, killcount: int):
         self.killcount = killcount
 
 class PlayerStats:
@@ -26,6 +25,17 @@ class PlayerStats:
         self.skills = skills
         self.bosses = bosses
 
+
+def fetch_player_stats_from_api(player_name):
+    """
+    Fetch player stats from the TempleOSRS API.
+    Raises RequestException on failure.
+    Returns the parsed JSON response.
+    """
+    url = f"https://templeosrs.com/api/player_stats.php?player={player_name}&bosses=1"
+    response = requests.get(url)
+    response.raise_for_status()  # Raises exception for bad status codes
+    return response.json()
 
 def get_player_stats(player_name):
     """
@@ -40,18 +50,37 @@ def get_player_stats(player_name):
     # Check for cached data
     try:
         cache = PlayerStatsCache.objects.get(group_member=member)
-        # Define cache expiration time (e.g., 1 hour)
-        if timezone.now() - cache.timestamp < timedelta(hours=1):
+        # Try to fetch new data if cache is stale (or on error)
+        if timezone.now() - cache.timestamp >= timedelta(hours=1):
+            print(f"Cached data for {player_name} is stale. Attempting to fetch new data...")
+            try:
+                api_response = fetch_player_stats_from_api(player_name)
+                print(f"Successfully fetched new data for {player_name}.")
+
+                # Update the cache with the new data
+                cache.data = api_response
+                cache.save()
+            except RequestException as e:
+                # If fetching new data fails, fall back to the existing cache
+                print(f"API request failed for {player_name}: {e}. Using cached data.")
+                api_response = cache.data
+        else:
             # Data is recent, use the cached data
             print(f"Using cached data for {player_name}")
             api_response = cache.data
-        else:
-            # Data is stale, fetch a new response
-            print(f"Cached data for {player_name} is stale. Fetching new data...")
-            url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
-            response = requests.get(url)
-            response.raise_for_status()
-            api_response = response.json()
+
+    except PlayerStatsCache.DoesNotExist:
+        # No cached data exists, so we must fetch a new response.
+        print(f"No cached data for {player_name}. Attempting to fetch new data...")
+        try:
+            api_response = fetch_player_stats_from_api(player_name)
+            print(f"Successfully fetched new data for {player_name}.")
+            
+            # Create a new cache entry
+            PlayerStatsCache.objects.create(group_member=member, data=api_response)
+        except RequestException as e:
+            print(f"API request failed for {player_name}: {e}. Cannot display stats.")
+            return None
 
             # Update the cache
             cache.data = api_response
@@ -89,7 +118,89 @@ def get_player_stats(player_name):
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
+    boss_names = [
+        "Abyssal Sire",
+        "Alchemical Hydra",
+        "Barrows Chests",
+        "Bryophyta",
+        "Callisto",
+        "Cerberus",
+        "Chambers of Xeric",
+        "Chambers of Xeric Challenge Mode",
+        "Chaos Elemental",
+        "Chaos Fanatic",
+        "Commander Zilyana",
+        "Corporeal Beast",
+        "Crazy Archaeologist",
+        "Dagannoth Prime",
+        "Dagannoth Rex",
+        "Dagannoth Supreme",
+        "Deranged Archaeologist",
+        "General Graardor",
+        "Giant Mole",
+        "Grotesque Guardians",
+        "Hespori",
+        "Kalphite Queen",
+        "King Black Dragon",
+        "Kraken",
+        "KreeArra",
+        "Kril Tsutsaroth",
+        "Mimic",
+        "Obor",
+        "Sarachnis",
+        "Scorpia",
+        "Skotizo",
+        "The Gauntlet",
+        "The Corrupted Gauntlet",
+        "Theatre of Blood",
+        "Thermonuclear Smoke Devil",
+        "TzKal-Zuk",
+        "TzTok-Jad",
+        "Venenatis",
+        "Vetion",
+        "Vorkath",
+        "Wintertodt",
+        "Zalcano",
+        "Zulrah",
+        "The Nightmare",
+        "Soul Wars Zeal",
+        "Tempoross",
+        "Theatre of Blood Challenge Mode",
+        "Bounty Hunter Hunter",
+        "Bounty Hunter Rogue",
+        "Phosanis Nightmare",
+        "Nex",
+        "Rift",
+        "PvP Arena",
+        "Tombs of Amascut",
+        "Tombs of Amascut Expert",
+        "Phantom Muspah",
+        "Artio",
+        "Calvarion",
+        "Spindel",
+        "Duke Sucellus",
+        "The Leviathan",
+        "The Whisperer",
+        "Vardorvis",
+        "Scurrius",
+        "Colosseum Glory",
+        "Lunar Chests",
+        "Sol Heredit",
+        "Araxxor",
+        "Hueycoatl",
+        "Amoxliatl",
+        "Collections",
+        "The Royal Titans",
+        "Yama",
+        "Doom of Mokhaiotl",
+    ]
+
     parsed_bosses = {}
+    for boss_name in boss_names:
+        boss_key = boss_name.lower()
+        killcount = player_data.get(f'{boss_name}', 0)
+        parsed_bosses[boss_key] = Boss(killcount = killcount)
+        
 
     return PlayerStats(
         player_name=player_info['Username'],

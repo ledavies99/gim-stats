@@ -93,7 +93,7 @@ def test_get_player_stats_success(monkeypatch):
     assert stats.skills['attack'].rank == 2
     assert stats.skills['attack'].level == 99
     assert stats.skills['attack'].xp == 654321
-    assert stats.bosses == {}
+    assert stats.bosses["wintertodt"] is not None  # Assuming bosses are always present
 
 def test_get_player_stats_error(monkeypatch):
     mock_json = {'error': 'Player not found'}

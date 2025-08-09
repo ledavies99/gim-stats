@@ -16,8 +16,7 @@ class Skill:
         self.xp = xp
 
 class Boss:
-    def __init__(self, rank: int, killcount: int):
-        self.rank = rank
+    def __init__(self, killcount: int):
         self.killcount = killcount
 
 class PlayerStats:
@@ -27,6 +26,21 @@ class PlayerStats:
         self.skills = skills
         self.bosses = bosses
 
+
+def load_config():
+    with open('config.json', 'r') as f:
+        return json.load(f)
+
+def fetch_player_stats_from_api(player_name):
+    """
+    Fetch player stats from the TempleOSRS API.
+    Raises RequestException on failure.
+    Returns the parsed JSON response.
+    """
+    url = f"https://templeosrs.com/api/player_stats.php?player={player_name}&bosses=1"
+    response = requests.get(url)
+    response.raise_for_status()  # Raises exception for bad status codes
+    return response.json()
 
 def get_player_stats(player_name):
     """
@@ -48,10 +62,7 @@ def get_player_stats(player_name):
         if timezone.now() - cache.timestamp >= timedelta(hours=1):
             print(f"Cached data for {player_name} is stale. Attempting to fetch new data...")
             try:
-                url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
-                response = requests.get(url)
-                response.raise_for_status() # This will raise an exception for bad status codes
-                api_response = response.json()
+                api_response = fetch_player_stats_from_api(player_name)
                 print(f"Successfully fetched new data for {player_name}.")
 
                 # Update the cache with the new data
@@ -63,17 +74,14 @@ def get_player_stats(player_name):
                 api_response = cache.data
         else:
             # Data is recent, use the cached data
-            print(f"Using recent cached data for {player_name}.")
+            print(f"Using cached data for {player_name}")
             api_response = cache.data
 
     except PlayerStatsCache.DoesNotExist:
         # No cached data exists, so we must fetch a new response.
         print(f"No cached data for {player_name}. Attempting to fetch new data...")
         try:
-            url = f"https://templeosrs.com/api/player_stats.php?player={player_name}"
-            response = requests.get(url)
-            response.raise_for_status()
-            api_response = response.json()
+            api_response = fetch_player_stats_from_api(player_name)
             print(f"Successfully fetched new data for {player_name}.")
             
             # Create a new cache entry
@@ -89,18 +97,11 @@ def get_player_stats(player_name):
     player_info = api_response['data']['info']
     player_data = api_response['data']
 
-    parsed_skills = {}
-    skill_names = [
-        'Attack', 'Hitpoints', 'Mining', 
-        'Strength', 'Agility', 'Smithing', 
-        'Defence','Herblore', 'Fishing', 
-        'Ranged', 'Thieving', 'Cooking', 
-        'Prayer', 'Crafting','Firemaking', 
-        'Magic', 'Fletching', 'Woodcutting', 
-        'Runecraft', 'Slayer', 'Farming',
-        'Construction', 'Hunter', 'Overall'
-    ]
+    config = load_config()
+    skill_names = config.get("skills", [])
+    boss_names = config.get("bosses", [])
 
+    parsed_skills = {}
     for skill_name in skill_names:
         skill_key = skill_name.lower()
         rank = player_data.get(f'{skill_name}_rank', 0)
@@ -109,10 +110,21 @@ def get_player_stats(player_name):
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
     parsed_bosses = {}
+    for boss_name in boss_names:
+        boss_key = boss_name.lower()
+        killcount = player_data.get(f'{boss_name}', 0)
+        parsed_bosses[boss_key] = Boss(killcount = killcount)
+
+    sorted_bosses_list = dict(sorted(
+        parsed_bosses.items(),
+        key=lambda item: item[1].killcount,
+        reverse=True
+    ))
+        
 
     return PlayerStats(
         player_name=player_info['Username'],
         timestamp=player_info['Last checked'],
         skills=parsed_skills,
-        bosses=parsed_bosses,
+        bosses=sorted_bosses_list,
     )

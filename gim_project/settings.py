@@ -32,7 +32,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'default-key-for-local-dev-only')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # Add the domain name of your deployed site here and local hosts
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['ldavies99.pythonanywhere.com', '127.0.0.1', 'localhost']
 if os.environ.get('ALLOWED_HOST'):
     ALLOWED_HOSTS.append(os.environ.get('ALLOWED_HOST'))
 

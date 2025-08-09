@@ -120,11 +120,17 @@ def get_player_stats(player_name):
         boss_key = boss_name.lower()
         killcount = player_data.get(f'{boss_name}', 0)
         parsed_bosses[boss_key] = Boss(killcount = killcount)
+
+    sorted_bosses_list = dict(sorted(
+        parsed_bosses.items(),
+        key=lambda item: item[1].killcount,
+        reverse=True
+    ))
         
 
     return PlayerStats(
         player_name=player_info['player_name_with_capitalization'],
         timestamp=player_info['Last checked'],
         skills=parsed_skills,
-        bosses=parsed_bosses,
+        bosses=sorted_bosses_list,
     )

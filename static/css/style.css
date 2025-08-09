@@ -1,3 +1,4 @@
+
 /* Global Styles */
 body {
     font-family: Arial, sans-serif;
@@ -38,7 +39,7 @@ main {
 }
 
 .player-card {
-    background-color: #2e2e2e;
+    background-color: #3f3e3a;
     border: 1px solid #7c7365;
     border-radius: 5px;
     width: 300px;
@@ -56,17 +57,6 @@ main {
     padding: 10px;
     background-color: #514b43;
     border: 1px solid #7c7365;
-}
-
-/* Overall stats box */
-.overall-stats {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #3f3e3a;
-    padding: 2px 5px;
-    height: 38px;
-    grid-column: 3;
 }
 
 /* Individual skill item */
@@ -93,12 +83,23 @@ main {
     color: #ffd700;
 }
 
-/* Overall stats text container */
+/* Overall stats container */
+.overall-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
+    grid-column: 3;
+}
+
+/* Styling for the text container inside the overall stats box */
 .overall-stats-text {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
+    white-space: nowrap;
     position: relative;
 }
 
@@ -108,6 +109,8 @@ main {
     font-weight: bold;
     color: #ffd700;
     margin: 0;
+    margin-bottom: -20px;
+
 }
 
 /* Overall value */
@@ -115,7 +118,7 @@ main {
     font-size: 1em;
     font-weight: bold;
     color: #ffd700;
-    margin: -20px 0 0;
+    margin: 0;
 }
 
 /* XP hover effect for skill items */
@@ -148,7 +151,6 @@ main {
 /* Collapsible boss stats section */
 .collapsible-boss-stats {
     margin-top: 10px;
-    /* IMPORTANT: Make sure this section takes up all available space to prevent layout issues */
     flex-grow: 1;
     background-color: #514b43;
     border: 1px solid #7c7365;
@@ -157,25 +159,22 @@ main {
 
 /* Style the clickable header for the collapsible section */
 .collapsible-boss-stats summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 10px;
-    padding-left: 30px; /* IMPORTANT: Increased padding to make space for the arrow */
     font-weight: bold;
     color: #fff;
     cursor: pointer;
-    list-style: none; /* Hides the default dropdown arrow */
+    list-style: none;
     background-color: #3f3e3a;
     border-radius: 5px;
-    position: relative;
     user-select: none;
 }
 
 /* Add a custom dropdown arrow using a pseudo-element */
 .collapsible-boss-stats summary::before {
     content: '▶';
-    position: absolute;
-    left: 10px; /* Positions the arrow 10px from the left edge */
-    top: 50%;
-    transform: translateY(-50%); /* Centers the arrow vertically */
     font-size: 0.8em;
     color: #ffd700;
     transition: transform 0.2s ease-in-out;
@@ -183,7 +182,7 @@ main {
 
 /* This is a more robust way to toggle the boss grid's visibility */
 .collapsible-boss-stats[open] .boss-grid {
-    display: grid;
+    display: flex;
 }
 
 .collapsible-boss-stats:not([open]) .boss-grid {
@@ -191,7 +190,6 @@ main {
 }
 
 .boss-grid {
-    display: flex;
     flex-direction: column;
     gap: 5px;
     padding: 5px;

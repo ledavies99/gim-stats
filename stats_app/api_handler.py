@@ -67,16 +67,19 @@ def get_player_stats(player_name):
         # Create a new cache entry
         PlayerStatsCache.objects.create(group_member=member, data=api_response)
 
-    # --- Parsing Logic (remains largely the same, but uses api_response) ---
     player_info = api_response['data']['info']
     player_data = api_response['data']
 
     parsed_skills = {}
     skill_names = [
-        'Overall', 'Attack', 'Defence', 'Strength', 'Hitpoints', 'Ranged', 'Prayer',
-        'Magic', 'Cooking', 'Woodcutting', 'Fletching', 'Fishing', 'Firemaking',
-        'Crafting', 'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving',
-        'Slayer', 'Farming', 'Runecraft', 'Hunter', 'Construction'
+        'Attack', 'Hitpoints', 'Mining', 
+        'Strength', 'Agility', 'Smithing', 
+        'Defence','Herblore', 'Fishing', 
+        'Ranged', 'Thieving', 'Cooking', 
+        'Prayer', 'Crafting','Firemaking', 
+        'Magic', 'Fletching', 'Woodcutting', 
+        'Runecraft', 'Slayer', 'Farming',
+        'Construction', 'Hunter', 'Overall'
     ]
 
     for skill_name in skill_names:

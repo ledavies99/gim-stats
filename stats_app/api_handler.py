@@ -2,6 +2,7 @@
 
 import requests
 import json
+from pathlib import Path
 from datetime import timedelta
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache
@@ -28,7 +29,14 @@ class PlayerStats:
 
 
 def load_config():
-    with open('config.json', 'r') as f:
+    base_dir = Path(__file__).resolve().parent
+    config_path = base_dir / 'config.json'
+
+    if not config_path.exists():
+        print(f"Error: The configuration file was not found at {config_path}")
+        return {"skills": [], "bosses": []}
+    
+    with open(config_path, 'r') as f:
         return json.load(f)
 
 def fetch_player_stats_from_api(player_name):

@@ -1,10 +1,9 @@
 import json
 import datetime
-from requests.exceptions import RequestException
-from stats_app.api_handler import get_player_stats, PlayerStats
-
 import sys
 import types
+import pytest
+from requests.exceptions import RequestException, HTTPError
 
 # --- Mock Django models and timezone ---
 mock_models = types.ModuleType("stats_app.models")
@@ -52,6 +51,8 @@ mock_models.GroupMember = MockGroupMember
 mock_models.PlayerStatsCache = MockPlayerStatsCache
 
 sys.modules["stats_app.models"] = mock_models
+
+from stats_app.api_handler import get_player_stats, PlayerStats, fetch_player_stats_from_api
 
 
 class MockResponse:
@@ -135,3 +136,75 @@ def test_get_player_stats_json_decode_error(monkeypatch):
 
     stats = get_player_stats("AnyPlayer")
     assert stats is None
+    
+def test_fetch_player_stats_from_api_success(monkeypatch):
+    expected_json = {"data": {"info": {"Username": "TestPlayer"}}}
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return expected_json
+
+    def mock_get(url):
+        return MockResponse()
+
+    monkeypatch.setattr("stats_app.api_handler.requests.get", mock_get)
+
+    result = fetch_player_stats_from_api("TestPlayer")
+    assert result == expected_json
+
+
+def test_fetch_player_stats_from_api_http_error(monkeypatch):
+
+    class MockResponse:
+        def raise_for_status(self):
+            raise RequestException("HTTP error")
+
+        def json(self):
+            return {}
+
+    def mock_get(url):
+        return MockResponse()
+
+    monkeypatch.setattr("stats_app.api_handler.requests.get", mock_get)
+
+    with pytest.raises(RequestException):
+        fetch_player_stats_from_api("TestPlayer")
+
+
+def test_fetch_player_stats_from_api_json_decode_error(monkeypatch):
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            raise json.JSONDecodeError("Expecting value", "", 0)
+
+    def mock_get(url):
+        return MockResponse()
+
+    monkeypatch.setattr("stats_app.api_handler.requests.get", mock_get)
+
+    with pytest.raises(json.JSONDecodeError):
+        fetch_player_stats_from_api("TestPlayer")
+
+
+def test_fetch_player_stats_from_api_http_status_error(monkeypatch):
+
+    class MockResponse:
+        def raise_for_status(self):
+            raise HTTPError("Bad status code")
+
+        def json(self):
+            return {}
+
+    def mock_get(url):
+        return MockResponse()
+
+    monkeypatch.setattr("stats_app.api_handler.requests.get", mock_get)
+
+    with pytest.raises(HTTPError):
+        fetch_player_stats_from_api("TestPlayer")

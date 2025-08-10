@@ -1,74 +1,58 @@
+{% extends "base.html" %}
 {% load static %}
 {% load custom_filters %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIM Stats</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-</head>
-<body>
+{% block title %}Player Stats{% endblock %}
 
-    <header>
-        <h1>GIM Group Stats</h1>
-    </header>
+{% block content %}
+<main>
+    {% if players %}
+        {% for player in players %}
+            <section class="player-card">
+                <h2>{{ player.player_name }}</h2>
+                <p>Last updated: {{ player.timestamp }}</p>
 
-    <main>
-        {% if players %}
-            {% for player in players %}
-                <section class="player-card">
-                    <h2>{{ player.player_name }}</h2>
-                    <p>Last updated: {{ player.timestamp }}</p>
+                <div class="skill-grid">
+                    {% for skill_name, skill_data in player.skills.items %}
+                        {% if skill_name != 'overall'%}
+                            <a href="{% url 'player_history' player_name=player.player_name skill_name=skill_name %}">
+                                <div class="skill-item" data-xp="{{ skill_data.xp|humanize_number }}">
+                                    <img class="skill-icon" src="{% static 'images/'|add:skill_name|add:'.png' %}" alt="{{ skill_name }}">
+                                    <span class="skill-level">{{ skill_data.level }}</span>
+                                </div>
+                            </a>
+                        {% endif %}
+                    {% endfor %}
 
-                    <div class="skill-grid">
-                        {% for skill_name, skill_data in player.skills.items %}
-                            {% if skill_name != 'overall'%}
-                                <a href="{% url 'player_history' player_name=player.player_name skill_name=skill_name %}">
-                                    <div class="skill-item" data-xp="{{ skill_data.xp|humanize_number }}">
-                                        <img class="skill-icon" src="{% static 'images/'|add:skill_name|add:'.png' %}" alt="{{ skill_name }}">
-                                        <span class="skill-level">{{ skill_data.level }}</span>
-                                    </div>
-                                </a>
+                    <a href="{% url 'player_history' player_name=player.player_name skill_name='overall' %}">
+                        <div class="overall-stats">
+                            <div class="overall-stats-text" data-xp="{{ player.skills.overall.xp|humanize_number }}">
+                                <span class="overall-label">Total level:</span>
+                                <br>
+                                <span class="overall-value">{{ player.skills.overall.level }}</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <details class="collapsible-boss-stats">
+                    <summary class="boss-grid-header">Bosses</summary>
+                    <div class="boss-grid">
+                        {% for boss_name, boss_data in player.bosses.items %}
+                            {% if boss_data.killcount > 0 %}
+                                <div class="boss-item">
+                                    <span class="boss-name">{{ boss_name|title }}</span>
+                                    <span class="boss-killcount">{{ boss_data.killcount }}</span>
+                                </div>
                             {% endif %}
                         {% endfor %}
-
-                        <a href="{% url 'player_history' player_name=player.player_name skill_name='overall' %}">
-                            <div class="overall-stats">
-                                <div class="overall-stats-text" data-xp="{{ player.skills.overall.xp|humanize_number }}">
-                                    <span class="overall-label">Total level:</span>
-                                    <br>
-                                    <span class="overall-value">{{ player.skills.overall.level }}</span>
-                                </div>
-                            </div>
-                        </a>
                     </div>
+                </details>
 
-                    <details class="collapsible-boss-stats">
-                        <summary class="boss-grid-header">Bosses</summary>
-                        <div class="boss-grid">
-                            {% for boss_name, boss_data in player.bosses.items %}
-                                {% if boss_data.killcount > 0 %}
-                                    <div class="boss-item">
-                                        <span class="boss-name">{{ boss_name|title }}</span>
-                                        <span class="boss-killcount">{{ boss_data.killcount }}</span>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </details>
-
-                </section>
-            {% endfor %}
-        {% else %}
-            <p>No player data could be retrieved. Please check your internet connection or if players have been added to the database.</p>
-        {% endif %}
-    </main>
-
-    <footer>
-        <p>&copy; 2025 GIM Stats</p>
-    </footer>
-
-</body>
-</html>
+            </section>
+        {% endfor %}
+    {% else %}
+        <p>No player data could be retrieved. Please check your internet connection or if players have been added to the database.</p>
+    {% endif %}
+</main>
+{% endblock %}

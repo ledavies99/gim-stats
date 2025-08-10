@@ -205,21 +205,28 @@ main {
     border-radius: 3px;
 }
 
+/* Update this class to be a simple flex container */
 .history-container {
+    display: flex;
+    justify-content: center;
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+}
+
+/* Add these new styles for the chart's card */
+.chart-card {
+    background-color: #3f3e3a;
+    border: 1px solid #7c7365;
+    border-radius: 8px;
     padding: 20px;
     box-sizing: border-box;
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 8px;
+    width: 100%;
+    max-width: 1000px; /* Adjust this value as needed */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .chart-container {
     position: relative;
-    height: 450px;
+    height: 500px; /* Increased height for better proportions */
     width: 100%;
 }
 

@@ -1,177 +1,170 @@
+{% extends 'base.html' %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Player History</title>
-    <!-- Use the Django static tag to link your stylesheet -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <!-- Import Chart.js for creating the graph -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
+{% block title %}Player History{% endblock %}
 
-    <header>
-        <h1 id="page-title"></h1>
-    </header>
-
-    <main>
-        <div class="chart-card player-card">
-            <h2 id="chart-title"></h2>
-            <!-- The chart will now be rendered within this container -->
-            <div class="chart-container">
-                <canvas id="historyChart" width="800" height="400"></canvas>
+{% block content %}
+<main class="history-container">
+    <div class="chart-card">
+        <h2 id="chart-title"></h2>
+        <div class="chart-container">
+            <canvas id="historyChart"></canvas>
+        </div>
+        <div id="message-container">
+            <div id="loading-message" class="message loading">
+                Fetching data...
             </div>
-            <div id="message-container">
-                <div id="loading-message" class="message loading">
-                    Fetching data...
-                </div>
-                <div id="error-message" class="message error">
-                    Error: Unable to load historical data.
-                </div>
+            <div id="error-message" class="message error">
+                Error: Unable to load historical data.
             </div>
         </div>
-    </main>
+    </div>
+    <div class="text-center mt-3">
+        <a href="/" class="btn btn-primary">Back to Stats</a>
+    </div>
+</main>
+{% endblock %}
 
-    <script>
-        // Get the elements we'll be interacting with
-        const pageTitleEl = document.getElementById('page-title');
-        const chartTitleEl = document.getElementById('chart-title');
-        const messageContainer = document.getElementById('message-container');
-        const loadingMessage = document.getElementById('loading-message');
-        const errorMessage = document.getElementById('error-message');
-        const chartCanvas = document.getElementById('historyChart');
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        // Get the player name and skill name from the URL path.
-        const pathSegments = window.location.pathname.split('/').filter(segment => segment);
-        const skillName = pathSegments[pathSegments.length - 1];
-        const playerName = pathSegments[pathSegments.length - 2];
-        
-        // Update the page title and h1 with the player's name and skill
-        const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1).replace(/_/g, ' ');
-        document.title = `${playerName}'s ${formattedSkillName} History`;
-        pageTitleEl.textContent = `${playerName}'s History`;
+<script>
+    // Get the elements we'll be interacting with
+    const pageTitleEl = document.getElementById('page-title');
+    const chartTitleEl = document.getElementById('chart-title');
+    const messageContainer = document.getElementById('message-container');
+    const loadingMessage = document.getElementById('loading-message');
+    const errorMessage = document.getElementById('error-message');
+    const chartCanvas = document.getElementById('historyChart');
 
-        let chartTitle = `${formattedSkillName} XP Over Time`;
-        let chartLabel = `${formattedSkillName} XP`;
-        let yAxisTitle = 'XP';
+    // Get the player name and skill name from the URL path.
+    const pathSegments = window.location.pathname.split('/').filter(segment => segment);
+    const skillName = pathSegments[pathSegments.length - 1];
+    const playerName = pathSegments[pathSegments.length - 2];
+    
+    // Update the page title and h1 with the player's name and skill
+    const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1).replace(/_/g, ' ');
+    document.title = `${playerName}'s ${formattedSkillName} History`;
+    // pageTitleEl is in the base template, so this line won't work anymore. 
+    // You can remove it or modify your base.html to include an element with this id.
+    // pageTitleEl.textContent = `${playerName}'s History`;
 
-        if (skillName === 'overall') {
-            chartTitle = `Total Level Over Time`;
-            chartLabel = `Total Level`;
-            yAxisTitle = 'Level';
-        }
-        chartTitleEl.textContent = chartTitle;
+    let chartTitle = `${formattedSkillName} XP Over Time`;
+    let chartLabel = `${formattedSkillName} XP`;
+    let yAxisTitle = 'XP';
 
-        // Show the loading message initially
-        messageContainer.style.display = 'block';
-        loadingMessage.style.display = 'block';
-        errorMessage.style.display = 'none';
+    if (skillName === 'overall') {
+        chartTitle = `Total Level Over Time`;
+        chartLabel = `Total Level`;
+        yAxisTitle = 'Level';
+    }
+    chartTitleEl.textContent = chartTitle;
 
-        async function fetchAndRenderChart(name, skill) {
-            try {
-                // Modified fetch URL to point to the new API endpoint
-                const response = await fetch(`/history/data/${name}/${skill}/`);
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: `Server returned status: ${response.status}` }));
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                
-                loadingMessage.style.display = 'none';
-                messageContainer.style.display = 'none';
+    // Show the loading message initially
+    messageContainer.style.display = 'block';
+    loadingMessage.style.display = 'block';
+    errorMessage.style.display = 'none';
 
-                if (data.error) {
-                    errorMessage.textContent = `Error: ${data.error}`;
-                    errorMessage.style.display = 'block';
-                    messageContainer.style.display = 'block';
-                    return;
-                }
+    async function fetchAndRenderChart(name, skill) {
+        try {
+            // Modified fetch URL to point to the new API endpoint
+            const response = await fetch(`/history/data/${name}/${skill}/`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `Server returned status: ${response.status}` }));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            loadingMessage.style.display = 'none';
+            messageContainer.style.display = 'none';
 
-                const ctx = chartCanvas.getContext('2d');
-                
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.timestamps,
-                        datasets: [
-                            {
-                                label: chartLabel,
-                                data: data.skill_values, // This is now using the new data from the backend
-                                // Use gold from your CSS
-                                borderColor: '#ffd700',
-                                backgroundColor: 'rgba(255, 215, 0, 0.2)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.1,
-                                pointBackgroundColor: '#ffd700',
-                                pointBorderColor: '#3f3e3a',
-                                pointHoverBackgroundColor: '#3f3e3a',
-                                pointHoverBorderColor: '#ffd700'
-                            },
-                        ]
+            if (data.error) {
+                errorMessage.textContent = `Error: ${data.error}`;
+                errorMessage.style.display = 'block';
+                messageContainer.style.display = 'block';
+                return;
+            }
+
+            const ctx = chartCanvas.getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [
+                        {
+                            label: chartLabel,
+                            data: data.skill_values,
+                            borderColor: '#ffd700',
+                            backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.1,
+                            pointBackgroundColor: '#ffd700',
+                            pointBorderColor: '#3f3e3a',
+                            pointHoverBackgroundColor: '#3f3e3a',
+                            pointHoverBorderColor: '#ffd700'
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#e0e0e0' // Set legend text color
-                                }
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: yAxisTitle,
+                                color: '#e0e0e0'
+                            },
+                            ticks: {
+                                color: '#e0e0e0'
+                            },
+                            grid: {
+                                color: '#5a5752'
                             }
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: false, // Changed this to false for better level scaling
-                                title: {
-                                    display: true,
-                                    text: yAxisTitle, // This is now dynamic
-                                    color: '#e0e0e0' // Set y-axis title color
-                                },
-                                ticks: {
-                                    color: '#e0e0e0' // Set y-axis tick color
-                                },
-                                grid: {
-                                    color: '#5a5752' // Set grid line color
-                                }
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Timestamp',
+                                color: '#e0e0e0'
                             },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Timestamp',
-                                    color: '#e0e0e0' // Set x-axis title color
-                                },
-                                ticks: {
-                                    color: '#e0e0e0' // Set x-axis tick color
-                                },
-                                grid: {
-                                    color: '#5a5752' // Set grid line color
-                                }
+                            ticks: {
+                                color: '#e0e0e0'
+                            },
+                            grid: {
+                                color: '#5a5752'
                             }
                         }
                     }
-                });
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                loadingMessage.style.display = 'none';
-                errorMessage.textContent = `An error occurred: ${error.message}`;
-                errorMessage.style.display = 'block';
-                messageContainer.style.display = 'block';
-            }
-        }
-        
-        // Only run the function if a player name is found in the URL.
-        if (playerName) {
-            fetchAndRenderChart(playerName, skillName);
-        } else {
-            messageContainer.style.display = 'block';
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching data:', error);
             loadingMessage.style.display = 'none';
-            errorMessage.textContent = 'No player name found in the URL.';
+            errorMessage.textContent = `An error occurred: ${error.message}`;
             errorMessage.style.display = 'block';
+            messageContainer.style.display = 'block';
         }
-    </script>
-</body>
-</html>
+    }
+    
+    // Only run the function if a player name is found in the URL.
+    if (playerName) {
+        fetchAndRenderChart(playerName, skillName);
+    } else {
+        messageContainer.style.display = 'block';
+        loadingMessage.style.display = 'none';
+        errorMessage.textContent = 'No player name found in the URL.';
+        errorMessage.style.display = 'block';
+    }
+</script>
+{% endblock %}

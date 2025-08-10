@@ -81,7 +81,7 @@ def get_player_stats(player_name):
                 # Update the cache with the new data
                 cache.data = api_response
                 cache.save()
-            except RequestException as e:
+            except (RequestException, json.JSONDecodeError) as e:
                 # If fetching new data fails, fall back to the existing cache
                 print(f"API request failed for {player_name}: {e}. Using cached data.")
                 api_response = cache.data
@@ -99,8 +99,10 @@ def get_player_stats(player_name):
 
             # Create a new cache entry
             PlayerStatsCache.objects.create(group_member=member, data=api_response)
-        except RequestException as e:
-            print(f"API request failed for {player_name}: {e}. Cannot display stats.")
+        except (RequestException, json.JSONDecodeError) as e:
+            print(
+                f"API request failed for {player_name}: {e}. No cached data available."
+            )
             return None
 
     if not api_response:

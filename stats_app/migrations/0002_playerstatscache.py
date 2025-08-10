@@ -5,19 +5,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('stats_app', '0001_initial'),
+        ("stats_app", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlayerStatsCache',
+            name="PlayerStatsCache",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('data', models.JSONField()),
-                ('timestamp', models.DateTimeField(auto_now=True)),
-                ('group_member', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='stats_app.groupmember')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("data", models.JSONField()),
+                ("timestamp", models.DateTimeField(auto_now=True)),
+                (
+                    "group_member",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="stats_app.groupmember",
+                    ),
+                ),
             ],
         ),
     ]

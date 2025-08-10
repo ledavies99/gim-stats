@@ -6,8 +6,7 @@ from pathlib import Path
 from datetime import timedelta
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache
-from django.core.serializers.json import DjangoJSONEncoder
-from requests.exceptions import RequestException # Add this import
+from requests.exceptions import RequestException  # Add this import
 
 
 class Skill:
@@ -16,9 +15,11 @@ class Skill:
         self.level = level
         self.xp = xp
 
+
 class Boss:
     def __init__(self, killcount: int):
         self.killcount = killcount
+
 
 class PlayerStats:
     def __init__(self, player_name: str, timestamp: str, skills: dict, bosses: dict):
@@ -30,14 +31,15 @@ class PlayerStats:
 
 def load_config():
     base_dir = Path(__file__).resolve().parent
-    config_path = base_dir / 'config.json'
+    config_path = base_dir / "config.json"
 
     if not config_path.exists():
         print(f"Error: The configuration file was not found at {config_path}")
         return {"skills": [], "bosses": []}
-    
-    with open(config_path, 'r') as f:
+
+    with open(config_path, "r") as f:
         return json.load(f)
+
 
 def fetch_player_stats_from_api(player_name):
     """
@@ -49,6 +51,7 @@ def fetch_player_stats_from_api(player_name):
     response = requests.get(url)
     response.raise_for_status()  # Raises exception for bad status codes
     return response.json()
+
 
 def get_player_stats(player_name):
     """
@@ -68,7 +71,9 @@ def get_player_stats(player_name):
         cache = PlayerStatsCache.objects.get(group_member=member)
         # Try to fetch new data if cache is stale (or on error)
         if timezone.now() - cache.timestamp >= timedelta(hours=1):
-            print(f"Cached data for {player_name} is stale. Attempting to fetch new data...")
+            print(
+                f"Cached data for {player_name} is stale. Attempting to fetch new data..."
+            )
             try:
                 api_response = fetch_player_stats_from_api(player_name)
                 print(f"Successfully fetched new data for {player_name}.")
@@ -91,7 +96,7 @@ def get_player_stats(player_name):
         try:
             api_response = fetch_player_stats_from_api(player_name)
             print(f"Successfully fetched new data for {player_name}.")
-            
+
             # Create a new cache entry
             PlayerStatsCache.objects.create(group_member=member, data=api_response)
         except RequestException as e:
@@ -102,8 +107,8 @@ def get_player_stats(player_name):
         return None
 
     # Parsing the API response
-    player_info = api_response['data']['info']
-    player_data = api_response['data']
+    player_info = api_response["data"]["info"]
+    player_data = api_response["data"]
 
     config = load_config()
     skill_names = config.get("skills", [])
@@ -112,27 +117,24 @@ def get_player_stats(player_name):
     parsed_skills = {}
     for skill_name in skill_names:
         skill_key = skill_name.lower()
-        rank = player_data.get(f'{skill_name}_rank', 0)
-        level = player_data.get(f'{skill_name}_level', 0)
+        rank = player_data.get(f"{skill_name}_rank", 0)
+        level = player_data.get(f"{skill_name}_level", 0)
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
     parsed_bosses = {}
     for boss_name in boss_names:
         boss_key = boss_name.lower()
-        killcount = player_data.get(f'{boss_name}', 0)
-        parsed_bosses[boss_key] = Boss(killcount = killcount)
+        killcount = player_data.get(f"{boss_name}", 0)
+        parsed_bosses[boss_key] = Boss(killcount=killcount)
 
-    sorted_bosses_list = dict(sorted(
-        parsed_bosses.items(),
-        key=lambda item: item[1].killcount,
-        reverse=True
-    ))
-        
+    sorted_bosses_list = dict(
+        sorted(parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True)
+    )
 
     return PlayerStats(
-        player_name=player_info['Username'],
-        timestamp=player_info['Last checked'],
+        player_name=player_info["Username"],
+        timestamp=player_info["Last checked"],
         skills=parsed_skills,
         bosses=sorted_bosses_list,
     )

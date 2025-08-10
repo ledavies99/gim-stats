@@ -2,7 +2,8 @@
 
 from django.shortcuts import render
 from .api_handler import get_player_stats
-from .models import GroupMember # Import your new model
+from .models import GroupMember  # Import your new model
+
 
 def player_stats_view(request):
     # Retrieve all GroupMember objects from the database
@@ -18,8 +19,6 @@ def player_stats_view(request):
         if stats:
             all_players_data.append(stats)
 
-    context = {
-        'players': all_players_data
-    }
+    context = {"players": all_players_data}
 
-    return render(request, 'stats_app/player_stats.html', context)
+    return render(request, "stats_app/player_stats.html", context)

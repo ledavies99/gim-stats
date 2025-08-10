@@ -2,11 +2,12 @@
 
 import requests
 import json
-from pathlib import Path
 from datetime import timedelta
 from django.utils import timezone
-from .models import GroupMember, PlayerStatsCache
-from requests.exceptions import RequestException  # Add this import
+from .models import GroupMember, PlayerStatsCache, APICallLog
+from requests.exceptions import RequestException
+import os
+from urllib.parse import quote
 
 
 class Skill:
@@ -30,15 +31,46 @@ class PlayerStats:
 
 
 def load_config():
-    base_dir = Path(__file__).resolve().parent
-    config_path = base_dir / "config.json"
+    """Loads configuration from config.json."""
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "config.json")
+        with open(config_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Error: config.json not found. Please create one.")
+        return {}
 
-    if not config_path.exists():
-        print(f"Error: The configuration file was not found at {config_path}")
-        return {"skills": [], "bosses": []}
 
-    with open(config_path, "r") as f:
-        return json.load(f)
+def update_player_on_temple(player_name, max_requests_per_minute):
+    """
+    Triggers a stat update for a player on the TempleOSRS website
+    by making a GET request to the add_datapoint.php endpoint.
+    This function is rate-limited using a database to prevent excessive requests.
+    """
+    # Rate-limiting logic using the database
+    one_minute_ago = timezone.now() - timedelta(seconds=60)
+    recent_requests = APICallLog.objects.filter(timestamp__gte=one_minute_ago)
+
+    if recent_requests.count() >= max_requests_per_minute:
+        print(f"Rate limit reached. Skipping update for {player_name}.")
+        return
+
+    try:
+        encoded_player_name = quote(player_name)
+        url = (
+            f"https://templeosrs.com/php/add_datapoint.php?player={encoded_player_name}"
+        )
+
+        response = requests.get(url, timeout=10)
+
+        response.raise_for_status()
+        print(f"Successfully triggered update for {player_name} on TempleOSRS.")
+
+        APICallLog.objects.create()
+
+    except RequestException as e:
+        print(f"Failed to trigger update for {player_name}: {e}")
 
 
 def fetch_player_stats_from_api(player_name):
@@ -49,70 +81,54 @@ def fetch_player_stats_from_api(player_name):
     """
     url = f"https://templeosrs.com/api/player_stats.php?player={player_name}&bosses=1"
     response = requests.get(url)
-    response.raise_for_status()  # Raises exception for bad status codes
+    response.raise_for_status()
     return response.json()
 
 
 def get_player_stats(player_name):
     """
-    Fetches and parses player stats, using caching to avoid repeated API calls.
-    Gracefully falls back to cached data if the API call fails.
+    Fetches player stats, using a cache if available.
     """
-    api_response = None
-    member = None
-
     try:
         member = GroupMember.objects.get(player_name=player_name)
     except GroupMember.DoesNotExist:
-        print(f"Error: Group member '{player_name}' not found in the database.")
         return None
+
+    config = load_config()
+    max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
 
     try:
         cache = PlayerStatsCache.objects.get(group_member=member)
-        # Try to fetch new data if cache is stale (or on error)
-        if timezone.now() - cache.timestamp >= timedelta(hours=1):
-            print(
-                f"Cached data for {player_name} is stale. Attempting to fetch new data..."
-            )
-            try:
-                api_response = fetch_player_stats_from_api(player_name)
-                print(f"Successfully fetched new data for {player_name}.")
-
-                # Update the cache with the new data
-                cache.data = api_response
-                cache.save()
-            except (RequestException, json.JSONDecodeError) as e:
-                # If fetching new data fails, fall back to the existing cache
-                print(f"API request failed for {player_name}: {e}. Using cached data.")
-                api_response = cache.data
-        else:
-            # Data is recent, use the cached data
-            print(f"Using cached data for {player_name}")
+        # Check if cache is fresh (less than 15 minutes old)
+        if timezone.now() - cache.last_updated < timedelta(minutes=15):
             api_response = cache.data
+            print(f"Using cached data for {player_name}")
+        else:
+            update_player_on_temple(player_name, max_requests)
+            # Add a short delay to give the TempleOSRS server time to process the update
+            import time
 
-    except PlayerStatsCache.DoesNotExist:
-        # No cached data exists, so we must fetch a new response.
-        print(f"No cached data for {player_name}. Attempting to fetch new data...")
-        try:
+            time.sleep(2)
+
+            print(f"Cached data for {player_name} is old. Fetching new data...")
             api_response = fetch_player_stats_from_api(player_name)
-            print(f"Successfully fetched new data for {player_name}.")
+            cache.data = api_response
+            cache.last_updated = timezone.now()
+            cache.save()
+    except PlayerStatsCache.DoesNotExist:
+        update_player_on_temple(player_name, max_requests)
+        import time
 
-            # Create a new cache entry
-            PlayerStatsCache.objects.create(group_member=member, data=api_response)
-        except (RequestException, json.JSONDecodeError) as e:
-            print(
-                f"API request failed for {player_name}: {e}. No cached data available."
-            )
-            return None
+        time.sleep(2)
 
-    if not api_response:
-        return None
+        print(f"No cached data for {player_name}. Fetching new data...")
+        api_response = fetch_player_stats_from_api(player_name)
 
-    # Parsing the API response
+        PlayerStatsCache.objects.create(group_member=member, data=api_response)
+
     player_info = api_response["data"]["info"]
     player_data = api_response["data"]
 
-    config = load_config()
     skill_names = config.get("skills", [])
     boss_names = config.get("bosses", [])
 
@@ -130,13 +146,23 @@ def get_player_stats(player_name):
         killcount = player_data.get(f"{boss_name}", 0)
         parsed_bosses[boss_key] = Boss(killcount=killcount)
 
-    sorted_bosses_list = dict(
-        sorted(parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True)
+    sorted_bosses_list = sorted(
+        parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True
     )
 
-    return PlayerStats(
+    overall_skill_data = player_data.get("Overall", 0)
+    overall_rank = player_data.get("Overall_rank", 0)
+    overall_level = player_data.get("Overall_level", 0)
+
+    parsed_skills["overall"] = Skill(
+        rank=overall_rank, level=overall_level, xp=overall_skill_data
+    )
+
+    player_stats_object = PlayerStats(
         player_name=player_info["Username"],
         timestamp=player_info["Last checked"],
         skills=parsed_skills,
         bosses=sorted_bosses_list,
     )
+
+    return player_stats_object

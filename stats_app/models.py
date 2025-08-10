@@ -11,9 +11,16 @@ class GroupMember(models.Model):
 
 
 class PlayerStatsCache(models.Model):
-    group_member = models.ForeignKey(GroupMember, on_delete=models.CASCADE)
+    group_member = models.OneToOneField(GroupMember, on_delete=models.CASCADE)
     data = models.JSONField()
-    timestamp = models.DateTimeField(auto_now=True)
+    last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Stats for {self.group_member.player_name} updated on {self.timestamp}"
+        return f"Cache for {self.group_member.player_name}"
+
+
+class APICallLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"API call at {self.timestamp}"

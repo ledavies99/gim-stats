@@ -1,4 +1,7 @@
 {
+    "api_rate_limit": {
+        "max_requests_per_minute": 5
+    },
     "skills": [
         "Attack", 
         "Hitpoints", 

@@ -100,11 +100,10 @@ def get_player_stats(player_name):
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
     api_response = None
 
-    # Attempt to trigger an update on TempleOSRS first.
     update_successful = update_player_on_temple(player_name, max_requests)
 
+    # If the update trigger was successful, fetch the new data
     if update_successful:
-        # If the update trigger was successful, we fetch the new data
         time.sleep(2)
         print(f"Update trigger successful. Now fetching new data for {player_name}...")
         try:
@@ -134,10 +133,6 @@ def get_player_stats(player_name):
                 f"No cached data and update failed for {player_name}. Cannot retrieve stats."
             )
             return None
-
-    # This handles the case where there's no cache and the update failed.
-    if api_response is None:
-        return None
 
     player_info = api_response["data"]["info"]
     player_data = api_response["data"]
@@ -185,7 +180,7 @@ def parse_bosses(player_data, config):
         killcount = player_data.get(f"{boss_name}", 0)
         parsed_bosses[boss_key] = Boss(killcount=killcount)
 
-    sorted_bosses_list = sorted(
-        parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True
+    sorted_bosses_list = dict(
+        sorted(parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True)
     )
     return sorted_bosses_list

@@ -4,7 +4,7 @@ import requests
 import json
 from datetime import timedelta
 from django.utils import timezone
-from .models import GroupMember, PlayerStatsCache, APICallLog
+from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
 import os
 from urllib.parse import quote
@@ -109,6 +109,9 @@ def get_player_stats(player_name):
         print(f"Update trigger successful. Now fetching new data for {player_name}...")
         try:
             api_response = fetch_player_stats_from_api(player_name)
+
+            PlayerHistory.objects.create(group_member=member, data=api_response)
+
             # Now check if a cache entry exists and update it, or create a new one.
             cache, created = PlayerStatsCache.objects.get_or_create(
                 group_member=member, defaults={"data": api_response}

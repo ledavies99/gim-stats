@@ -188,7 +188,7 @@ def parse_bosses(player_data, config):
         killcount = player_data.get(f"{boss_name}", 0)
         parsed_bosses[boss_key] = Boss(killcount=killcount)
 
-    sorted_bosses_list = sorted(
-        parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True
+    sorted_bosses_list = dict(
+        sorted(parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True)
     )
     return sorted_bosses_list

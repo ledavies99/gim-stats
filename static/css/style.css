@@ -205,6 +205,56 @@ main {
     border-radius: 3px;
 }
 
+.history-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.chart-container {
+    position: relative;
+    height: 450px;
+    width: 100%;
+}
+
+#historyChart {
+    height: 100%;
+    width: 100%;
+}
+
+/* Style for the container holding the messages. Hidden by default. */
+#message-container {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Base style for all messages */
+.message {
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+/* Specific style for the loading message */
+.loading {
+    background-color: #2a2a2a;
+    color: #ffd700;
+}
+
+/* Specific style for the error message */
+.error {
+    background-color: #4a1c1c;
+    color: #e57373;
+}
+
+
 /* Footer styling */
 footer {
     text-align: center;

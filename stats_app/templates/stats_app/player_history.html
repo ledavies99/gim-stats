@@ -18,10 +18,9 @@
     </header>
 
     <main>
-        <!-- The new class 'history-container' will be styled to take full width -->
-        <div class="history-container">
-            <h2>Overall XP Over Time</h2>
-            <!-- The chart will be rendered within this container -->
+        <div class="chart-card player-card">
+            <h2 id="chart-title"></h2>
+            <!-- The chart will now be rendered within this container -->
             <div class="chart-container">
                 <canvas id="historyChart" width="800" height="400"></canvas>
             </div>
@@ -37,28 +36,44 @@
     </main>
 
     <script>
-        // Get the player name from the URL path.
-        const pathParts = window.location.pathname.split('/');
-        const playerName = pathParts[pathParts.length - 2];
-        
-        // Update the page title and h1 with the player's name
-        document.title = `History for ${playerName}`;
-        document.getElementById('page-title').textContent = `${playerName}'s History`;
-
+        // Get the elements we'll be interacting with
+        const pageTitleEl = document.getElementById('page-title');
+        const chartTitleEl = document.getElementById('chart-title');
         const messageContainer = document.getElementById('message-container');
         const loadingMessage = document.getElementById('loading-message');
         const errorMessage = document.getElementById('error-message');
         const chartCanvas = document.getElementById('historyChart');
+
+        // Get the player name and skill name from the URL path.
+        const pathSegments = window.location.pathname.split('/').filter(segment => segment);
+        const skillName = pathSegments[pathSegments.length - 1];
+        const playerName = pathSegments[pathSegments.length - 2];
+        
+        // Update the page title and h1 with the player's name and skill
+        const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1).replace(/_/g, ' ');
+        document.title = `${playerName}'s ${formattedSkillName} History`;
+        pageTitleEl.textContent = `${playerName}'s History`;
+
+        let chartTitle = `${formattedSkillName} XP Over Time`;
+        let chartLabel = `${formattedSkillName} XP`;
+        let yAxisTitle = 'XP';
+
+        if (skillName === 'overall') {
+            chartTitle = `Total Level Over Time`;
+            chartLabel = `Total Level`;
+            yAxisTitle = 'Level';
+        }
+        chartTitleEl.textContent = chartTitle;
 
         // Show the loading message initially
         messageContainer.style.display = 'block';
         loadingMessage.style.display = 'block';
         errorMessage.style.display = 'none';
 
-        async function fetchAndRenderChart(name) {
+        async function fetchAndRenderChart(name, skill) {
             try {
                 // Modified fetch URL to point to the new API endpoint
-                const response = await fetch(`/history/data/${name}/`);
+                const response = await fetch(`/history/data/${name}/${skill}/`);
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ error: `Server returned status: ${response.status}` }));
                     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -83,8 +98,8 @@
                         labels: data.timestamps,
                         datasets: [
                             {
-                                label: 'Overall XP',
-                                data: data.overall_xp,
+                                label: chartLabel,
+                                data: data.skill_values, // This is now using the new data from the backend
                                 // Use gold from your CSS
                                 borderColor: '#ffd700',
                                 backgroundColor: 'rgba(255, 215, 0, 0.2)',
@@ -96,20 +111,6 @@
                                 pointHoverBackgroundColor: '#3f3e3a',
                                 pointHoverBorderColor: '#ffd700'
                             },
-                            {
-                                label: 'Vorkath Killcount',
-                                data: data.vorkath_kc,
-                                // Use a complementary blue or keep the default
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.1,
-                                pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-                                pointBorderColor: '#3f3e3a',
-                                pointHoverBackgroundColor: '#3f3e3a',
-                                pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
-                            }
                         ]
                     },
                     options: {
@@ -124,10 +125,10 @@
                         },
                         scales: {
                             y: {
-                                beginAtZero: true,
+                                beginAtZero: false, // Changed this to false for better level scaling
                                 title: {
                                     display: true,
-                                    text: 'Value',
+                                    text: yAxisTitle, // This is now dynamic
                                     color: '#e0e0e0' // Set y-axis title color
                                 },
                                 ticks: {
@@ -164,7 +165,7 @@
         
         // Only run the function if a player name is found in the URL.
         if (playerName) {
-            fetchAndRenderChart(playerName);
+            fetchAndRenderChart(playerName, skillName);
         } else {
             messageContainer.style.display = 'block';
             loadingMessage.style.display = 'none';

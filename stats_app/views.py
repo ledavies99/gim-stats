@@ -25,64 +25,59 @@ def player_stats_view(request):
     return render(request, "stats_app/player_stats.html", context)
 
 
-def player_history_api_view(request, player_name):
-    """
-    Retrieves a player's historical stats and prepares them for a graph.
-    This view returns a JSON response, which is ideal for a JavaScript
-    charting library on the front end.
-    """
-    # Get the GroupMember object for the given player name.
-    # The get_object_or_404 function will raise an Http404 if the player is not found.
-    group_member = get_object_or_404(GroupMember, player_name=player_name)
+def player_history_view(request, player_name, skill_name):
+    """View to display a player's historical stats chart."""
+    # This view just renders the HTML page. The JavaScript will handle the data fetching.
+    context = {
+        "player_name": player_name,
+        "skill_name": skill_name,
+    }
+    return render(request, "stats_app/player_history.html", context)
 
-    # Get all historical records for this player, ordered by timestamp.
+
+def player_history_api_view(request, player_name, skill_name):
+    """
+    Retrieves a player's historical stats for a specific skill and prepares
+    them for a graph. This view now returns the data for the skill
+    passed in the URL.
+    """
+    # Get the GroupMember object for the given player name, using a case-insensitive lookup.
+    group_member = get_object_or_404(GroupMember, player_name__iexact=player_name)
+
+    # Get all the PlayerHistory records for this player, ordered by timestamp.
     history_records = PlayerHistory.objects.filter(group_member=group_member).order_by(
         "timestamp"
     )
 
-    # Check if there's any historical data.
-    if not history_records:
-        return JsonResponse(
-            {"error": "No historical data found for this player."}, status=404
-        )
-
-    # Prepare data for charting. We'll store timestamps and the values for a specific stat.
+    # Prepare data for charting.
     timestamps = []
-    overall_xp = []
-    vorkath_kc = []
+    skill_values = []
+
+    # Capitalize the skill name to match the JSON key, e.g., 'attack' -> 'Attack'
+    capitalized_skill_name = skill_name.capitalize()
+
+    # Define the key for the value we want to track (XP or level)
+    value_key = f"{capitalized_skill_name}"
+
+    # Special case for the overall skill
+    if skill_name.lower() == "overall":
+        value_key = "Overall_level"
 
     # Iterate through the records to extract the data.
     for record in history_records:
         timestamps.append(record.timestamp.strftime("%Y-%m-%d %H:%M"))
 
-        # Extract the Overall XP value.
-        # The data is stored as a JSONField, so we can access it like a dictionary.
-        overall_xp_value = record.data.get("data", {}).get("Overall", 0)
-        overall_xp.append(overall_xp_value)
+        # Access the value using the constructed key
+        history_data = record.data.get("data", {})
+        skill_value = history_data.get(value_key, 0)
 
-        # Extract the Vorkath kill count value.
-        vorkath_kc_value = record.data.get("data", {}).get("Vorkath_killcount", 0)
-        vorkath_kc.append(vorkath_kc_value)
+        skill_values.append(skill_value)
 
     # Return the data as a JSON response.
-    # This is a good way to separate the backend logic from the front-end rendering.
     return JsonResponse(
         {
             "player_name": player_name,
             "timestamps": timestamps,
-            "overall_xp": overall_xp,
-            "vorkath_kc": vorkath_kc,
+            "skill_values": skill_values,
         }
     )
-
-
-def player_history_page(request, player_name):
-    """
-    Renders the HTML page for a player's historical stats.
-    The JavaScript on the page will fetch the data separately.
-    """
-    # Check if the player exists before rendering the page.
-    # This will return a 404 if the player_name is invalid.
-    get_object_or_404(GroupMember, player_name=player_name)
-    # The path has been updated to include the 'stats_app/' subdirectory.
-    return render(request, "stats_app/player_history.html")

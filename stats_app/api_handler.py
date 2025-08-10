@@ -8,6 +8,7 @@ from .models import GroupMember, PlayerStatsCache, APICallLog
 from requests.exceptions import RequestException
 import os
 from urllib.parse import quote
+import time
 
 
 class Skill:
@@ -47,14 +48,14 @@ def update_player_on_temple(player_name, max_requests_per_minute):
     Triggers a stat update for a player on the TempleOSRS website
     by making a GET request to the add_datapoint.php endpoint.
     This function is rate-limited using a database to prevent excessive requests.
+    Returns True on success, False otherwise.
     """
-    # Rate-limiting logic using the database
     one_minute_ago = timezone.now() - timedelta(seconds=60)
     recent_requests = APICallLog.objects.filter(timestamp__gte=one_minute_ago)
 
     if recent_requests.count() >= max_requests_per_minute:
         print(f"Rate limit reached. Skipping update for {player_name}.")
-        return
+        return False
 
     try:
         encoded_player_name = quote(player_name)
@@ -63,14 +64,15 @@ def update_player_on_temple(player_name, max_requests_per_minute):
         )
 
         response = requests.get(url, timeout=10)
-
         response.raise_for_status()
         print(f"Successfully triggered update for {player_name} on TempleOSRS.")
 
         APICallLog.objects.create()
+        return True
 
     except RequestException as e:
         print(f"Failed to trigger update for {player_name}: {e}")
+        return False
 
 
 def fetch_player_stats_from_api(player_name):
@@ -87,7 +89,7 @@ def fetch_player_stats_from_api(player_name):
 
 def get_player_stats(player_name):
     """
-    Fetches player stats, using a cache if available.
+    Fetches player stats based on the requested logic.
     """
     try:
         member = GroupMember.objects.get(player_name=player_name)
@@ -96,52 +98,89 @@ def get_player_stats(player_name):
 
     config = load_config()
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
+    api_response = None
 
-    try:
-        cache = PlayerStatsCache.objects.get(group_member=member)
-        # Check if cache is fresh (less than 15 minutes old)
-        if timezone.now() - cache.last_updated < timedelta(minutes=15):
-            api_response = cache.data
-            print(f"Using cached data for {player_name}")
-        else:
-            update_player_on_temple(player_name, max_requests)
-            # Add a short delay to give the TempleOSRS server time to process the update
-            import time
+    # Attempt to trigger an update on TempleOSRS first.
+    update_successful = update_player_on_temple(player_name, max_requests)
 
-            time.sleep(2)
-
-            print(f"Cached data for {player_name} is old. Fetching new data...")
-            api_response = fetch_player_stats_from_api(player_name)
-            cache.data = api_response
-            cache.last_updated = timezone.now()
-            cache.save()
-    except PlayerStatsCache.DoesNotExist:
-        update_player_on_temple(player_name, max_requests)
-        import time
-
+    if update_successful:
+        # If the update trigger was successful, we fetch the new data
         time.sleep(2)
+        print(f"Update trigger successful. Now fetching new data for {player_name}...")
+        try:
+            api_response = fetch_player_stats_from_api(player_name)
+            # Now check if a cache entry exists and update it, or create a new one.
+            cache, created = PlayerStatsCache.objects.get_or_create(
+                group_member=member, defaults={"data": api_response}
+            )
+            if not created:
+                cache.data = api_response
+                cache.last_updated = timezone.now()
+                cache.save()
+        except RequestException as e:
+            print(
+                f"Failed to fetch new data after successful update trigger. Cannot update stats: {e}"
+            )
+            api_response = None
 
-        print(f"No cached data for {player_name}. Fetching new data...")
-        api_response = fetch_player_stats_from_api(player_name)
+    # If the update trigger was not successful fall back to checking the cache.
+    if api_response is None:
+        try:
+            cache = PlayerStatsCache.objects.get(group_member=member)
+            print(f"Using cached data for {player_name}.")
+            api_response = cache.data
+        except PlayerStatsCache.DoesNotExist:
+            print(
+                f"No cached data and update failed for {player_name}. Cannot retrieve stats."
+            )
+            return None
 
-        PlayerStatsCache.objects.create(group_member=member, data=api_response)
+    # This handles the case where there's no cache and the update failed.
+    if api_response is None:
+        return None
 
     player_info = api_response["data"]["info"]
     player_data = api_response["data"]
 
-    skill_names = config.get("skills", [])
-    boss_names = config.get("bosses", [])
+    parsed_skills = parse_skills(player_data, config)
+    parsed_bosses = parse_bosses(player_data, config)
 
+    player_stats_object = PlayerStats(
+        player_name=player_info["Username"],
+        timestamp=player_info["Last checked"],
+        skills=parsed_skills,
+        bosses=parsed_bosses,
+    )
+
+    return player_stats_object
+
+
+def parse_skills(player_data, config):
+    """Helper function to parse skill data."""
+    config_skills = config.get("skills", [])
     parsed_skills = {}
-    for skill_name in skill_names:
+    for skill_name in config_skills:
         skill_key = skill_name.lower()
         rank = player_data.get(f"{skill_name}_rank", 0)
         level = player_data.get(f"{skill_name}_level", 0)
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
+    overall_skill_data = player_data.get("Overall", 0)
+    overall_rank = player_data.get("Overall_rank", 0)
+    overall_level = player_data.get("Overall_level", 0)
+    parsed_skills["overall"] = Skill(
+        rank=overall_rank, level=overall_level, xp=overall_skill_data
+    )
+
+    return parsed_skills
+
+
+def parse_bosses(player_data, config):
+    """Helper function to parse and sort boss data."""
+    config_bosses = config.get("bosses", [])
     parsed_bosses = {}
-    for boss_name in boss_names:
+    for boss_name in config_bosses:
         boss_key = boss_name.lower()
         killcount = player_data.get(f"{boss_name}", 0)
         parsed_bosses[boss_key] = Boss(killcount=killcount)
@@ -149,20 +188,4 @@ def get_player_stats(player_name):
     sorted_bosses_list = sorted(
         parsed_bosses.items(), key=lambda item: item[1].killcount, reverse=True
     )
-
-    overall_skill_data = player_data.get("Overall", 0)
-    overall_rank = player_data.get("Overall_rank", 0)
-    overall_level = player_data.get("Overall_level", 0)
-
-    parsed_skills["overall"] = Skill(
-        rank=overall_rank, level=overall_level, xp=overall_skill_data
-    )
-
-    player_stats_object = PlayerStats(
-        player_name=player_info["Username"],
-        timestamp=player_info["Last checked"],
-        skills=parsed_skills,
-        bosses=sorted_bosses_list,
-    )
-
-    return player_stats_object
+    return sorted_bosses_list

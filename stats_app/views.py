@@ -9,34 +9,41 @@ from .models import GroupMember, PlayerHistory, PlayerStatsCache
 # stats_app/views.py
 
 
+# stats_app/views.py
+
+
 def player_stats_view(request):
     """
     View to display player stats directly from the cache.
     """
+    # --- DEBUG CANARY ---
+    print("--- RUNNING THE NEW, SIMPLIFIED player_stats_view ---")
+
     all_cached_stats = PlayerStatsCache.objects.all().order_by(
         "group_member__player_name"
     )
     all_players_data = []
-    config = load_config()  # Load the config once
+    config = load_config()
 
     for cache_entry in all_cached_stats:
-        # Get the raw JSON data from the cache entry
+        # --- DEBUG CANARY ---
+        print(
+            f"--- Found and processing cache entry for player: {cache_entry.group_member.player_name} ---"
+        )
+
         api_response = cache_entry.data
         if not api_response or "data" not in api_response:
-            continue  # Skip if this cache entry is malformed
+            continue
 
         player_info = api_response.get("data", {}).get("info", {})
         player_data = api_response.get("data", {})
 
-        # Skip if essential dictionaries are missing
         if not player_info or not player_data:
             continue
 
-        # Use the same parsing logic from your api_handler
         parsed_skills = parse_skills(player_data, config)
         parsed_bosses = parse_bosses(player_data, config)
 
-        # Re-create the PlayerStats object to pass to the template
         player_stats_object = PlayerStats(
             player_name=player_info.get("Username", "Unknown"),
             timestamp=player_info.get("Last checked", "N/A"),

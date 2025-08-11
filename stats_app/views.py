@@ -81,3 +81,54 @@ def player_history_api_view(request, player_name, skill_name):
             "skill_values": skill_values,
         }
     )
+
+
+def skill_history_view(request, skill_name):
+    """View to display the skill history page."""
+    all_players = GroupMember.objects.values("player_name").distinct()
+    context = {
+        "skill_name": skill_name,
+        "all_players": all_players,
+    }
+    return render(request, "stats_app/skill_history.html", context)
+
+
+# stats_app/views.py
+
+
+def skill_history_data_api(request, skill_name):
+    player_names_str = request.GET.get("players", "")
+    if not player_names_str:
+        return JsonResponse({"error": "No players selected"}, status=400)
+
+    player_names = player_names_str.split(",")
+
+    first_player_history = PlayerHistory.objects.filter(
+        group_member__player_name=player_names[0]
+    ).order_by("timestamp")
+    timestamps = [h.timestamp.strftime("%Y-%m-%d %H:%M") for h in first_player_history]
+
+    datasets = []
+    for player_name in player_names:
+        history = PlayerHistory.objects.filter(
+            group_member__player_name=player_name
+        ).order_by("timestamp")
+
+        if skill_name == "overall":
+            skill_values = [
+                h.data.get("data", {}).get("Overall_level", 0) for h in history
+            ]
+        else:
+            skill_values = [
+                h.data.get("data", {}).get(skill_name.capitalize(), 0) for h in history
+            ]
+
+        datasets.append(
+            {
+                "label": player_name,
+                "data": skill_values,
+            }
+        )
+
+    response_data = {"timestamps": timestamps, "datasets": datasets}
+    return JsonResponse(response_data)

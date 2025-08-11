@@ -1,5 +1,6 @@
 # stats_app/views.py
 
+import os
 from .api_handler import parse_skills, parse_bosses, load_config, PlayerStats
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -9,13 +10,18 @@ from .models import GroupMember, PlayerHistory, PlayerStatsCache
 # stats_app/views.py
 
 
-# stats_app/views.py
-
-
 def player_stats_view(request):
-    """
-    View to display player stats directly from the cache.
-    """
+    # --- FINAL DATABASE TEST ---
+    print("--- CHECKING DATABASE CONNECTION ---")
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        print("DATABASE_URL is PRESENT.")
+    else:
+        print(
+            "CRITICAL: DATABASE_URL IS MISSING! The app is using a temporary SQLite database."
+        )
+    print("---------------------------------")
+
     # --- DEBUG CANARY ---
     print("--- RUNNING THE NEW, SIMPLIFIED player_stats_view ---")
 

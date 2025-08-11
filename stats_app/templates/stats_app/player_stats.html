@@ -15,7 +15,7 @@
                 <div class="skill-grid">
                     {% for skill_name, skill_data in player.skills.items %}
                         {% if skill_name != 'overall'%}
-                            <a href="{% url 'player_history' player_name=player.player_name skill_name=skill_name %}">
+                            <a href="{% url 'skill_history' skill_name=skill_name %}?player={{ player.player_name }}">
                                 <div class="skill-item" data-xp="{{ skill_data.xp|humanize_number }}">
                                     <img class="skill-icon" src="{% static 'images/'|add:skill_name|add:'.png' %}" alt="{{ skill_name }}">
                                     <span class="skill-level">{{ skill_data.level }}</span>
@@ -24,7 +24,7 @@
                         {% endif %}
                     {% endfor %}
 
-                    <a href="{% url 'player_history' player_name=player.player_name skill_name='overall' %}">
+                    <a href="{% url 'skill_history' skill_name='overall' %}?player={{ player.player_name }}">
                         <div class="overall-stats">
                             <div class="overall-stats-text" data-xp="{{ player.skills.overall.xp|humanize_number }}">
                                 <span class="overall-label">Total level:</span>

@@ -10,7 +10,7 @@
             <h4>Select Players</h4>
             {% for player in all_players %}
             <div class="form-check form-check-inline">
-                <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ player.player_name }}">
+                <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ player.player_name }}" {% if player.player_name == selected_player_name %}checked{% endif %}>
                 <label class="form-check-label" for="player_{{ player.player_name }}">{{ player.player_name }}</label>
             </div>
             {% endfor %}
@@ -121,6 +121,13 @@
 
     // --- Event Listener ---
     updateBtn.addEventListener('click', fetchAndRenderChart);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const initiallyChecked = document.querySelector('.player-checkbox:checked');
+        if (initiallyChecked) {
+            updateBtn.click(); // If a player is pre-selected, load the graph automatically
+        }
+    });
 
 </script>
 {% endblock %}

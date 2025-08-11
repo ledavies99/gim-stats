@@ -2,41 +2,21 @@
 
 from django.shortcuts import render
 from django.http import JsonResponse
-from .models import GroupMember, PlayerHistory, PlayerStatsCache
-from .api_handler import parse_skills, parse_bosses, load_config, PlayerStats
+from .models import GroupMember, PlayerHistory
+from .api_handler import get_player_stats_from_cache
 
 
 def player_stats_view(request):
     """
     View to display player stats directly from the cache.
     """
-    all_cached_stats = PlayerStatsCache.objects.all().order_by(
-        "group_member__player_name"
-    )
+    all_players = GroupMember.objects.all().order_by("player_name")
     all_players_data = []
-    config = load_config()
 
-    for cache_entry in all_cached_stats:
-        api_response = cache_entry.data
-        if not api_response or "data" not in api_response:
-            continue
-
-        player_info = api_response.get("data", {}).get("info", {})
-        player_data = api_response.get("data", {})
-
-        if not player_info or not player_data:
-            continue
-
-        parsed_skills = parse_skills(player_data, config)
-        parsed_bosses = parse_bosses(player_data, config)
-
-        player_stats_object = PlayerStats(
-            player_name=player_info.get("Username", "Unknown"),
-            timestamp=player_info.get("Last checked", "N/A"),
-            skills=parsed_skills,
-            bosses=parsed_bosses,
-        )
-        all_players_data.append(player_stats_object)
+    for player in all_players:
+        stats = get_player_stats_from_cache(player.player_name)
+        if stats:
+            all_players_data.append(stats)
 
     context = {"players": all_players_data}
     return render(request, "stats_app/player_stats.html", context)

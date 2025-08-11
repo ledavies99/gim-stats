@@ -31,19 +31,19 @@ class PlayerStats:
         self.bosses = bosses
 
 
-def get_player_stats(player_name):
+def refresh_player_cache(player_name):
     """
-    Fetches player stats by first attempting a rate-limited API update,
-    then falling back to the local cache.
+    Handles the "heavy lifting": triggers an API update, fetches fresh data,
+    and saves it to the PlayerStatsCache.
+    Returns True on success, False on failure.
     """
     try:
         member = GroupMember.objects.get(player_name=player_name)
     except GroupMember.DoesNotExist:
-        return None
+        return False
 
     config = load_config()
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
-    api_response = None
 
     if update_player_on_temple(player_name, max_requests):
         time.sleep(0.5)  # A short delay after a successful update trigger
@@ -56,19 +56,27 @@ def get_player_stats(player_name):
                 cache.data = api_response
                 cache.last_updated = timezone.now()
                 cache.save()
+            return True  # Success
         except RequestException:
-            api_response = None  # Failed to fetch new data, will fall back to cache
+            return False  # Failed to fetch new data
+    return False  # Rate limit was likely hit
 
-    if api_response is None:
-        try:
-            cache = PlayerStatsCache.objects.get(group_member=member)
-            api_response = cache.data
-        except PlayerStatsCache.DoesNotExist:
-            return None
+
+def get_player_stats_from_cache(player_name):
+    """
+    Handles the "fast" part: reads and parses data directly from the cache.
+    """
+    try:
+        member = GroupMember.objects.get(player_name=player_name)
+        cache = PlayerStatsCache.objects.get(group_member=member)
+        api_response = cache.data
+    except (GroupMember.DoesNotExist, PlayerStatsCache.DoesNotExist):
+        return None
 
     if not api_response or "data" not in api_response:
         return None
 
+    config = load_config()
     player_info = api_response.get("data", {}).get("info", {})
     player_data = api_response.get("data", {})
 
@@ -78,18 +86,16 @@ def get_player_stats(player_name):
     parsed_skills = parse_skills(player_data, config)
     parsed_bosses = parse_bosses(player_data, config)
 
-    player_stats_object = PlayerStats(
+    return PlayerStats(
         player_name=player_info.get("Username", "Unknown"),
         timestamp=player_info.get("Last checked", "N/A"),
         skills=parsed_skills,
         bosses=parsed_bosses,
     )
 
-    return player_stats_object
-
 
 def parse_skills(player_data, config):
-    """Helper function to parse skill data."""
+    """Parse skills from player data using the provided config."""
     skill_names = config.get("skills", [])
     parsed_skills = {}
     for skill_name in skill_names:
@@ -110,7 +116,7 @@ def parse_skills(player_data, config):
 
 
 def parse_bosses(player_data, config):
-    """Helper function to parse and sort boss data."""
+    """Parse bosses from player data using the provided config."""
     boss_names = config.get("bosses", [])
     parsed_bosses = {}
     for boss_name in boss_names:
@@ -125,10 +131,10 @@ def parse_bosses(player_data, config):
 
 
 def update_player_on_temple(player_name, max_requests_per_minute):
+    """Updates the player's stats on the TempleOSRS API.
+    Returns True if the update was successful, False if it hit the rate limit.
     """
-    Triggers a stat update for a player on TempleOSRS, subject to rate limiting.
-    Returns True on success, False otherwise.
-    """
+    # Check if the rate limit has been hit
     one_minute_ago = timezone.now() - timedelta(seconds=60)
     recent_requests = APICallLog.objects.filter(timestamp__gte=one_minute_ago)
 
@@ -149,11 +155,7 @@ def update_player_on_temple(player_name, max_requests_per_minute):
 
 
 def fetch_player_stats_from_api(player_name):
-    """
-    Fetches player stats from the TempleOSRS API.
-    Raises RequestException on failure. Returns the parsed JSON response.
-    """
-
+    """Fetches player stats from the TempleOSRS API."""
     encoded_player_name = quote(player_name)
     url = f"https://templeosrs.com/api/player_stats.php?player={encoded_player_name}&bosses=1"
     response = requests.get(url, timeout=10)
@@ -162,7 +164,7 @@ def fetch_player_stats_from_api(player_name):
 
 
 def load_config():
-    """Loads configuration from config.json."""
+    """Loads the configuration from a JSON file."""
     try:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(base_dir, "config.json")

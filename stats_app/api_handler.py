@@ -48,7 +48,7 @@ def get_player_stats(player_name):
 
     # If the update trigger was successful, fetch the new data
     if update_successful:
-        time.sleep(2)
+        time.sleep(0.5)
         print(f"Now fetching new data for {player_name}...")
         try:
             api_response = fetch_player_stats_from_api(player_name)

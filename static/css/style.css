@@ -30,12 +30,12 @@ p {
 }
 
 main {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 320px);
     justify-content: center;
-    align-items: flex-start;
+    gap: 20px;
     padding: 20px;
+    width: 100%;
 }
 
 .player-card {
@@ -57,6 +57,11 @@ main {
     padding: 10px;
     background-color: #514b43;
     border: 1px solid #7c7365;
+}
+
+/* Remove underline from skill links */
+.skill-grid a {
+    text-decoration: none;
 }
 
 /* Individual skill item */
@@ -109,8 +114,7 @@ main {
     font-weight: bold;
     color: #ffd700;
     margin: 0;
-    margin-bottom: -20px;
-
+    line-height: 1;
 }
 
 /* Overall value */
@@ -119,6 +123,7 @@ main {
     font-weight: bold;
     color: #ffd700;
     margin: 0;
+    line-height: 1.2;
 }
 
 /* XP hover effect for skill items */

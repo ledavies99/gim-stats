@@ -28,14 +28,13 @@
                         <div class="overall-stats">
                             <div class="overall-stats-text" data-xp="{{ player.skills.overall.xp|humanize_number }}">
                                 <span class="overall-label">Total level:</span>
-                                <br>
                                 <span class="overall-value">{{ player.skills.overall.level }}</span>
                             </div>
                         </div>
                     </a>
                 </div>
 
-                <details class="collapsible-boss-stats">
+                <details class="collapsible-boss-stats" open>
                     <summary class="boss-grid-header">Bosses</summary>
                     <div class="boss-grid">
                         {% for boss_name, boss_data in player.bosses.items %}

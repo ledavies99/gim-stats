@@ -30,12 +30,12 @@ p {
 }
 
 main {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 320px);
     justify-content: center;
-    align-items: flex-start;
+    gap: 20px;
     padding: 20px;
+    width: 100%;
 }
 
 .player-card {
@@ -57,6 +57,11 @@ main {
     padding: 10px;
     background-color: #514b43;
     border: 1px solid #7c7365;
+}
+
+/* Remove underline from skill links */
+.skill-grid a {
+    text-decoration: none;
 }
 
 /* Individual skill item */
@@ -109,8 +114,7 @@ main {
     font-weight: bold;
     color: #ffd700;
     margin: 0;
-    margin-bottom: -20px;
-
+    line-height: 1;
 }
 
 /* Overall value */
@@ -119,6 +123,7 @@ main {
     font-weight: bold;
     color: #ffd700;
     margin: 0;
+    line-height: 1.2;
 }
 
 /* XP hover effect for skill items */
@@ -204,6 +209,63 @@ main {
     background-color: #3f3e3a;
     border-radius: 3px;
 }
+
+/* Update this class to be a simple flex container */
+.history-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Add these new styles for the chart's card */
+.chart-card {
+    background-color: #3f3e3a;
+    border: 1px solid #7c7365;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1000px; /* Adjust this value as needed */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.chart-container {
+    position: relative;
+    height: 500px; /* Increased height for better proportions */
+    width: 100%;
+}
+
+#historyChart {
+    height: 100%;
+    width: 100%;
+}
+
+/* Style for the container holding the messages. Hidden by default. */
+#message-container {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Base style for all messages */
+.message {
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+/* Specific style for the loading message */
+.loading {
+    background-color: #2a2a2a;
+    color: #ffd700;
+}
+
+/* Specific style for the error message */
+.error {
+    background-color: #4a1c1c;
+    color: #e57373;
+}
+
 
 /* Footer styling */
 footer {

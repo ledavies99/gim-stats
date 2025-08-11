@@ -77,6 +77,7 @@ def skill_history_data_api(request, skill_name):
     if period == "all":
         downsampled_records = list(history_query)
     else:
+        # UPDATED: Use the new helper function
         for key, group in groupby(
             history_query, key=lambda h: get_time_grouping_key(h, period)
         ):
@@ -85,6 +86,7 @@ def skill_history_data_api(request, skill_name):
     if not downsampled_records:
         return JsonResponse({"timestamps": [], "datasets": []})
 
+    # The rest of the function remains the same...
     timestamps = sorted(list(set(h.timestamp for h in downsampled_records)))
     formatted_timestamps = [ts.strftime("%Y-%m-%d %H:%M") for ts in timestamps]
 

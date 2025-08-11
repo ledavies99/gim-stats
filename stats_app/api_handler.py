@@ -31,13 +31,18 @@ class PlayerStats:
         self.bosses = bosses
 
 
+# stats_app/api_handler.py
+
+
 def get_player_stats(player_name):
     """
     Fetches player stats based on the requested logic.
     """
+    print(f"--- [LOG] Starting get_player_stats for: {player_name} ---")  # LOG 1
     try:
         member = GroupMember.objects.get(player_name=player_name)
     except GroupMember.DoesNotExist:
+        print(f"--- [LOG] ERROR: GroupMember not found for {player_name}. ---")  # LOG 2
         return None
 
     config = load_config()
@@ -46,13 +51,13 @@ def get_player_stats(player_name):
 
     update_successful = update_player_on_temple(player_name, max_requests)
 
-    # If the update trigger was successful, fetch the new data
     if update_successful:
+        print(
+            f"--- [LOG] Update trigger was successful for {player_name}. ---"
+        )  # LOG 3
         time.sleep(0.5)
-        print(f"Now fetching new data for {player_name}...")
         try:
             api_response = fetch_player_stats_from_api(player_name)
-            # Now check if a cache entry exists and update it, or create a new one.
             cache, created = PlayerStatsCache.objects.get_or_create(
                 group_member=member, defaults={"data": api_response}
             )
@@ -60,25 +65,38 @@ def get_player_stats(player_name):
                 cache.data = api_response
                 cache.last_updated = timezone.now()
                 cache.save()
-            print("Successful.")
+            print(
+                f"--- [LOG] Successfully fetched and updated cache for {player_name}. ---"
+            )  # LOG 4
         except RequestException as e:
             print(
-                f"Failed to fetch new data after successful update trigger. Cannot update stats: {e}"
-            )
+                f"--- [LOG] ERROR: Failed to fetch new data for {player_name}: {e} ---"
+            )  # LOG 5
             api_response = None
 
-    # If the update trigger was not successful fall back to checking the cache.
     if api_response is None:
+        print(
+            f"--- [LOG] api_response is None. Falling back to cache for {player_name}. ---"
+        )  # LOG 6
         try:
             cache = PlayerStatsCache.objects.get(group_member=member)
-            print(f"Using cached data for {player_name}.")
+            print(
+                f"--- [LOG] Successfully found cache for {player_name}. Last updated: {cache.last_updated}. ---"
+            )  # LOG 7
             api_response = cache.data
         except PlayerStatsCache.DoesNotExist:
             print(
-                f"No cached data and update failed for {player_name}. Cannot retrieve stats."
-            )
+                f"--- [LOG] CRITICAL: Cache not found for {player_name} during fallback. ---"
+            )  # LOG 8
             return None
 
+    if not api_response:
+        print(
+            f"--- [LOG] ERROR: api_response is still empty after checking cache for {player_name}. Cannot proceed. ---"
+        )  # LOG 9
+        return None
+
+    # If we get here, parsing should work
     player_info = api_response["data"]["info"]
     player_data = api_response["data"]
 
@@ -92,6 +110,9 @@ def get_player_stats(player_name):
         bosses=parsed_bosses,
     )
 
+    print(
+        f"--- [LOG] Successfully parsed data and returning PlayerStats object for {player_name}. ---"
+    )  # LOG 10
     return player_stats_object
 
 

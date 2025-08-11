@@ -10,7 +10,6 @@ def player_stats_view(request):
     """View to display player stats."""
     group_members = GroupMember.objects.all()
 
-    # Extract the player names from the objects
     player_names = [member.player_name for member in group_members]
 
     all_players_data = []
@@ -29,13 +28,12 @@ def skill_history_view(request, skill_name):
     """View to display the skill history page."""
     all_players = GroupMember.objects.values("player_name").distinct()
 
-    # Get the selected player's name from the URL query parameter
     selected_player_name = request.GET.get("player", None)
 
     context = {
         "skill_name": skill_name,
         "all_players": all_players,
-        "selected_player_name": selected_player_name,  # Add to context
+        "selected_player_name": selected_player_name,
     }
     return render(request, "stats_app/skill_history.html", context)
 
@@ -60,9 +58,7 @@ def skill_history_data_api(request, skill_name):
         ).order_by("timestamp")
 
         if skill_name == "overall":
-            skill_values = [
-                h.data.get("data", {}).get("Overall_level", 0) for h in history
-            ]
+            skill_values = [h.data.get("data", {}).get("Overall", 0) for h in history]
         else:
             skill_values = [
                 h.data.get("data", {}).get(skill_name.capitalize(), 0) for h in history

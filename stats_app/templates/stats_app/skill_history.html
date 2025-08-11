@@ -5,24 +5,29 @@
 
 {% block content %}
 <main class="history-container">
-    <div class="chart-card">
-        <div id="player-selection" class="mb-3">
-            <h4>Select Players</h4>
-            {% for player in all_players %}
-            <div class="form-check form-check-inline">
-                <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ player.player_name }}" {% if player.player_name == selected_player_name %}checked{% endif %}>
-                <label class="form-check-label" for="player_{{ player.player_name }}">{{ player.player_name }}</label>
+    <div class="d-flex justify-content-center w-100">
+        <div class="chart-card">
+            <div class="text-end mb-2">
+                <a href="{% url 'player_stats' %}" class="btn btn-sm btn-secondary">&laquo; Back to Stats</a>
             </div>
-            {% endfor %}
-            <button id="update-chart-btn" class="btn btn-primary btn-sm ms-3">Update Graph</button>
-        </div>
 
-        <h2 id="chart-title"></h2>
-        <div class="chart-container">
-            <canvas id="historyChart"></canvas>
-        </div>
-        <div id="message-container" style="display: none;">
+            <div id="player-selection" class="mb-3">
+                <h4>Select Players</h4>
+                {% for player in all_players %}
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ player.player_name }}" {% if player.player_name == selected_player_name %}checked{% endif %}>
+                    <label class="form-check-label" for="player_{{ player.player_name }}">{{ player.player_name }}</label>
+                </div>
+                {% endfor %}
             </div>
+
+            <h2 id="chart-title"></h2>
+            <div class="chart-container">
+                <canvas id="historyChart"></canvas>
+            </div>
+            <div id="message-container" style="display: none;">
+                </div>
+        </div>
     </div>
 </main>
 {% endblock %}
@@ -42,13 +47,8 @@
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
     // --- Dynamic Titles ---
-    let yAxisTitle = 'XP';
-    if (skillName === 'overall') {
-        chartTitleEl.textContent = 'Total Level Over Time';
-        yAxisTitle = 'Level';
-    } else {
-        chartTitleEl.textContent = `${formattedSkillName} XP Over Time`;
-    }
+    chartTitleEl.textContent = `${formattedSkillName} XP Over Time`;
+    const yAxisTitle = 'XP';
 
     // --- Main Function ---
     async function fetchAndRenderChart() {
@@ -119,13 +119,17 @@
         }
     }
 
-    // --- Event Listener ---
-    updateBtn.addEventListener('click', fetchAndRenderChart);
+    // --- Event Listeners ---
+    const playerCheckboxes = document.querySelectorAll('.player-checkbox');
+
+    playerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', fetchAndRenderChart);
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         const initiallyChecked = document.querySelector('.player-checkbox:checked');
         if (initiallyChecked) {
-            updateBtn.click(); // If a player is pre-selected, load the graph automatically
+            fetchAndRenderChart();
         }
     });
 

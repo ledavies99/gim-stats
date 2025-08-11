@@ -2,13 +2,13 @@
 
 import requests
 import json
+import time
+import os
 from datetime import timedelta
+from urllib.parse import quote
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache, APICallLog
 from requests.exceptions import RequestException
-import os
-from urllib.parse import quote
-import time
 
 
 class Skill:
@@ -31,31 +31,22 @@ class PlayerStats:
         self.bosses = bosses
 
 
-# stats_app/api_handler.py
-
-
 def get_player_stats(player_name):
     """
-    Fetches player stats based on the requested logic.
+    Fetches player stats by first attempting a rate-limited API update,
+    then falling back to the local cache.
     """
-    print(f"--- [LOG] Starting get_player_stats for: {player_name} ---")  # LOG 1
     try:
         member = GroupMember.objects.get(player_name=player_name)
     except GroupMember.DoesNotExist:
-        print(f"--- [LOG] ERROR: GroupMember not found for {player_name}. ---")  # LOG 2
         return None
 
     config = load_config()
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
     api_response = None
 
-    update_successful = update_player_on_temple(player_name, max_requests)
-
-    if update_successful:
-        print(
-            f"--- [LOG] Update trigger was successful for {player_name}. ---"
-        )  # LOG 3
-        time.sleep(0.5)
+    if update_player_on_temple(player_name, max_requests):
+        time.sleep(0.5)  # A short delay after a successful update trigger
         try:
             api_response = fetch_player_stats_from_api(player_name)
             cache, created = PlayerStatsCache.objects.get_or_create(
@@ -65,54 +56,35 @@ def get_player_stats(player_name):
                 cache.data = api_response
                 cache.last_updated = timezone.now()
                 cache.save()
-            print(
-                f"--- [LOG] Successfully fetched and updated cache for {player_name}. ---"
-            )  # LOG 4
-        except RequestException as e:
-            print(
-                f"--- [LOG] ERROR: Failed to fetch new data for {player_name}: {e} ---"
-            )  # LOG 5
-            api_response = None
+        except RequestException:
+            api_response = None  # Failed to fetch new data, will fall back to cache
 
     if api_response is None:
-        print(
-            f"--- [LOG] api_response is None. Falling back to cache for {player_name}. ---"
-        )  # LOG 6
         try:
             cache = PlayerStatsCache.objects.get(group_member=member)
-            print(
-                f"--- [LOG] Successfully found cache for {player_name}. Last updated: {cache.last_updated}. ---"
-            )  # LOG 7
             api_response = cache.data
         except PlayerStatsCache.DoesNotExist:
-            print(
-                f"--- [LOG] CRITICAL: Cache not found for {player_name} during fallback. ---"
-            )  # LOG 8
             return None
 
-    if not api_response:
-        print(
-            f"--- [LOG] ERROR: api_response is still empty after checking cache for {player_name}. Cannot proceed. ---"
-        )  # LOG 9
+    if not api_response or "data" not in api_response:
         return None
 
-    # If we get here, parsing should work
-    player_info = api_response["data"]["info"]
-    player_data = api_response["data"]
+    player_info = api_response.get("data", {}).get("info", {})
+    player_data = api_response.get("data", {})
+
+    if not player_info or not player_data:
+        return None
 
     parsed_skills = parse_skills(player_data, config)
     parsed_bosses = parse_bosses(player_data, config)
 
     player_stats_object = PlayerStats(
-        player_name=player_info["Username"],
-        timestamp=player_info["Last checked"],
+        player_name=player_info.get("Username", "Unknown"),
+        timestamp=player_info.get("Last checked", "N/A"),
         skills=parsed_skills,
         bosses=parsed_bosses,
     )
 
-    print(
-        f"--- [LOG] Successfully parsed data and returning PlayerStats object for {player_name}. ---"
-    )  # LOG 10
     return player_stats_object
 
 
@@ -154,16 +126,13 @@ def parse_bosses(player_data, config):
 
 def update_player_on_temple(player_name, max_requests_per_minute):
     """
-    Triggers a stat update for a player on the TempleOSRS website
-    by making a GET request to the add_datapoint.php endpoint.
-    This function is rate-limited using a database to prevent excessive requests.
+    Triggers a stat update for a player on TempleOSRS, subject to rate limiting.
     Returns True on success, False otherwise.
     """
     one_minute_ago = timezone.now() - timedelta(seconds=60)
     recent_requests = APICallLog.objects.filter(timestamp__gte=one_minute_ago)
 
     if recent_requests.count() >= max_requests_per_minute:
-        print(f"Rate limit reached. Skipping update for {player_name}.")
         return False
 
     try:
@@ -171,27 +140,23 @@ def update_player_on_temple(player_name, max_requests_per_minute):
         url = (
             f"https://templeosrs.com/php/add_datapoint.php?player={encoded_player_name}"
         )
-
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        print(f"Successfully triggered update for {player_name} on TempleOSRS.")
-
         APICallLog.objects.create()
         return True
-
-    except RequestException as e:
-        print(f"Failed to trigger update for {player_name}: {e}")
+    except RequestException:
         return False
 
 
 def fetch_player_stats_from_api(player_name):
     """
-    Fetch player stats from the TempleOSRS API.
-    Raises RequestException on failure.
-    Returns the parsed JSON response.
+    Fetches player stats from the TempleOSRS API.
+    Raises RequestException on failure. Returns the parsed JSON response.
     """
-    url = f"https://templeosrs.com/api/player_stats.php?player={player_name}&bosses=1"
-    response = requests.get(url)
+
+    encoded_player_name = quote(player_name)
+    url = f"https://templeosrs.com/api/player_stats.php?player={encoded_player_name}&bosses=1"
+    response = requests.get(url, timeout=10)
     response.raise_for_status()
     return response.json()
 
@@ -204,5 +169,4 @@ def load_config():
         with open(config_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        print("Error: config.json not found. Please create one.")
         return {}

@@ -1,30 +1,15 @@
 # stats_app/views.py
 
-import os
-from .api_handler import parse_skills, parse_bosses, load_config, PlayerStats
 from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory, PlayerStatsCache
-
-
-# stats_app/views.py
+from .api_handler import parse_skills, parse_bosses, load_config, PlayerStats
 
 
 def player_stats_view(request):
-    # --- FINAL DATABASE TEST ---
-    print("--- CHECKING DATABASE CONNECTION ---")
-    database_url = os.environ.get("DATABASE_URL")
-    if database_url:
-        print("DATABASE_URL is PRESENT.")
-    else:
-        print(
-            "CRITICAL: DATABASE_URL IS MISSING! The app is using a temporary SQLite database."
-        )
-    print("---------------------------------")
-
-    # --- DEBUG CANARY ---
-    print("--- RUNNING THE NEW, SIMPLIFIED player_stats_view ---")
-
+    """
+    View to display player stats directly from the cache.
+    """
     all_cached_stats = PlayerStatsCache.objects.all().order_by(
         "group_member__player_name"
     )
@@ -32,11 +17,6 @@ def player_stats_view(request):
     config = load_config()
 
     for cache_entry in all_cached_stats:
-        # --- DEBUG CANARY ---
-        print(
-            f"--- Found and processing cache entry for player: {cache_entry.group_member.player_name} ---"
-        )
-
         api_response = cache_entry.data
         if not api_response or "data" not in api_response:
             continue
@@ -65,7 +45,6 @@ def player_stats_view(request):
 def skill_history_view(request, skill_name):
     """View to display the skill history page."""
     all_players = GroupMember.objects.values("player_name").distinct()
-
     selected_player_name = request.GET.get("player", None)
 
     context = {

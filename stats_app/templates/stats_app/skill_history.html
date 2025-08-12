@@ -23,8 +23,7 @@
 
             <div id="time-filter-selection" class="mb-3">
                 <div class="btn-group" role="group" aria-label="Timeframe filter">
-                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn active" data-period="all">All</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn" data-period="hour">Hour</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn active" data-period="hour">Hour</button>
                     <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn" data-period="day">Day</button>
                     <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn" data-period="week">Week</button>
                 </div>
@@ -50,12 +49,19 @@
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
     let historyChart = null;
-    let activePeriod = 'all';
+    let activePeriod = 'hour'; // Default to hour
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
     // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
     const yAxisTitle = (skillName === 'overall') ? 'Level' : 'XP';
+
+    // --- Time Unit Options ---
+    const timeUnitOptions = {
+        hour: { unit: 'hour', displayFormat: 'HH:mm' },
+        day: { unit: 'day', displayFormat: 'MMM d' },
+        week: { unit: 'week', displayFormat: "'Week' w" }
+    };
 
     // --- Main Function ---
     async function fetchAndRenderChart() {
@@ -68,13 +74,12 @@
         }
 
         const playerQueryString = selectedPlayers.join(',');
-        const apiUrl = `/api/history_data/${skillName}/?players=${playerQueryString}&period=${activePeriod}`;
+        const apiUrl = `/api/history_data/${skillName}/?players=${playerQueryString}`;
 
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
-            console.log(data);
 
             if (!data || !data.datasets) {
                 if (historyChart) historyChart.destroy();
@@ -90,6 +95,10 @@
             }));
 
             if (historyChart) historyChart.destroy();
+
+            // Use selected time unit for x-axis
+            const selectedUnit = activePeriod in timeUnitOptions ? activePeriod : 'day';
+            const { unit, displayFormat } = timeUnitOptions[selectedUnit];
 
             historyChart = new Chart(chartCanvas.getContext('2d'), {
                 type: 'line',
@@ -107,8 +116,37 @@
                         },
                         x: {
                             type: 'time',
-                            title: { display: true, text: 'Timestamp', color: '#e0e0e0' },
-                            ticks: { color: '#e0e0e0' },
+                            time: {
+                                unit: unit,
+                                displayFormats: {
+                                    [unit]: displayFormat,
+                                }
+                            },
+                            title: { display: true, text: 'Date', color: '#e0e0e0' },
+                            ticks: {
+                                color: '#e0e0e0',
+                                callback: function(value, index, ticks) {
+                                    const date = new Date(value);
+                                    if (unit === 'hour') {
+                                        if (date.getHours() === 0) {
+                                            return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                                        } else {
+                                            return date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                        }
+                                    }
+                                    if (unit === 'day') {
+                                        return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                                    }
+                                    if (unit === 'week') {
+                                        const monday = new Date(date);
+                                        const day = monday.getDay();
+                                        const diff = monday.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+                                        monday.setDate(diff);
+                                        return monday.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                                    }
+                                    return this.getLabelForValue(value);
+                                }
+                            },
                             grid: { color: '#5a5752' }
                         }
                     },

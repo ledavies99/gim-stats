@@ -45,10 +45,7 @@
 
 <script>
     // --- Elements ---
-    const chartTitleEl = document.getElementById('chart-title');
-    const chartCanvas = document.getElementById('historyChart');
-    const playerCheckboxes = document.querySelectorAll('.player-checkbox');
-    const timeFilterBtns = document.querySelectorAll('.time-filter-btn');
+    let chartTitleEl, chartCanvas, playerCheckboxes, timeFilterBtns;
 
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
@@ -59,7 +56,6 @@
     // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
     const yAxisTitle = (skillName === 'overall') ? 'Level' : 'XP';
-    chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
 
     // --- Main Function ---
     async function fetchAndRenderChart() {
@@ -78,6 +74,7 @@
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
+            console.log(data);
 
             if (!data || !data.datasets) {
                 if (historyChart) historyChart.destroy();
@@ -102,7 +99,6 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    parsing: false, // Tell Chart.js we've already formatted the data as {x, y}
                     scales: {
                         y: {
                             title: { display: true, text: yAxisTitle, color: '#e0e0e0' },
@@ -110,7 +106,7 @@
                             grid: { color: '#5a5752' }
                         },
                         x: {
-                            type: 'time', // Use the time scale
+                            type: 'time',
                             title: { display: true, text: 'Timestamp', color: '#e0e0e0' },
                             ticks: { color: '#e0e0e0' },
                             grid: { color: '#5a5752' }
@@ -130,20 +126,31 @@
     }
 
     // --- Event Listeners ---
-    playerCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', fetchAndRenderChart);
-    });
-
-    timeFilterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            timeFilterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            activePeriod = btn.dataset.period;
-            fetchAndRenderChart();
+    function setupChartEventListeners() {
+        playerCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', fetchAndRenderChart);
         });
-    });
+
+        timeFilterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                timeFilterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activePeriod = btn.dataset.period;
+                fetchAndRenderChart();
+            });
+        });
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
+        chartTitleEl = document.getElementById('chart-title');
+        chartCanvas = document.getElementById('historyChart');
+        playerCheckboxes = document.querySelectorAll('.player-checkbox');
+        timeFilterBtns = document.querySelectorAll('.time-filter-btn');
+
+        chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
+
+        setupChartEventListeners();
+
         const initiallyChecked = document.querySelector('.player-checkbox:checked');
         if (initiallyChecked) {
             fetchAndRenderChart();

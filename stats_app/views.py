@@ -92,7 +92,7 @@ def skill_history_data_api(request, skill_name):
             chart_data.append(
                 {
                     "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "y": record.data.get("data", {}).get(value_key, 0),
+                    "y": int(record.data.get("data", {}).get(value_key, 0) or 0),
                 }
             )
 

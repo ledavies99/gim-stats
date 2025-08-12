@@ -86,7 +86,7 @@ def skill_history_data_api(request, skill_name):
 
         # Prepare data points as {x, y} objects for Chart.js
         chart_data = []
-        value_key = "Overall" if skill_name == "overall" else skill_name.capitalize()
+        value_key = skill_name.capitalize()
 
         for record in downsampled_records:
             chart_data.append(

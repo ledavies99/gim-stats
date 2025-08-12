@@ -37,7 +37,8 @@ def skill_history_view(request, skill_name):
 
 def skill_history_data_api(request, skill_name):
     """
-    API endpoint to fetch all skill history data for multiple players.
+    API endpoint to fetch all skill history data for multiple players,
+    keeping only the first and last point of each run of identical y-values.
     """
     player_names_str = request.GET.get("players", "")
     if not player_names_str:
@@ -55,17 +56,50 @@ def skill_history_data_api(request, skill_name):
         if not history_query.exists():
             continue
 
-        # Prepare data points as {x, y} objects for Chart.js
         chart_data = []
         value_key = skill_name.capitalize()
+        prev_y = None
+        run_start = None
 
-        for record in history_query:
-            chart_data.append(
-                {
-                    "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "y": int(record.data.get("data", {}).get(value_key, 0) or 0),
-                }
-            )
+        history_list = list(history_query)
+        for i, record in enumerate(history_list):
+            y_val = int(record.data.get("data", {}).get(value_key, 0) or 0)
+            if prev_y is None or y_val != prev_y:
+                if run_start is not None and i > 0:
+                    last_record = history_list[i - 1]
+                    last_y = int(
+                        last_record.data.get("data", {}).get(value_key, 0) or 0
+                    )
+                    if last_record.timestamp != run_start.timestamp:
+                        chart_data.append(
+                            {
+                                "x": last_record.timestamp.strftime(
+                                    "%Y-%m-%dT%H:%M:%S"
+                                ),
+                                "y": last_y,
+                            }
+                        )
+                chart_data.append(
+                    {
+                        "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "y": y_val,
+                    }
+                )
+                run_start = record
+            prev_y = y_val
+
+        if history_list:
+            last_record = history_list[-1]
+            last_y = int(last_record.data.get("data", {}).get(value_key, 0) or 0)
+            if not chart_data or chart_data[-1]["x"] != last_record.timestamp.strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ):
+                chart_data.append(
+                    {
+                        "x": last_record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "y": last_y,
+                    }
+                )
 
         datasets.append(
             {

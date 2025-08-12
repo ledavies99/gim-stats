@@ -91,7 +91,7 @@ def skill_history_data_api(request, skill_name):
         for record in downsampled_records:
             chart_data.append(
                 {
-                    "x": record.timestamp.strftime("%Y-%m-%d %H:%M"),
+                    "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
                     "y": record.data.get("data", {}).get(value_key, 0),
                 }
             )

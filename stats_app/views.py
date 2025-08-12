@@ -36,30 +36,10 @@ def skill_history_view(request, skill_name):
     return render(request, "stats_app/skill_history.html", context)
 
 
-def get_time_grouping_key(history_record, period):
-    """Returns a key for grouping history records by a given time period."""
-    if period == "hour":
-        return (
-            history_record.group_member_id,
-            history_record.timestamp.strftime("%Y-%m-%d %H"),
-        )
-    elif period == "day":
-        return (history_record.group_member_id, history_record.timestamp.date())
-    elif period == "week":
-        return (
-            history_record.group_member_id,
-            history_record.timestamp.strftime("%Y-%U"),
-        )
-    return (
-        history_record.group_member_id,
-        history_record.timestamp,
-    )  # Default for 'all'
-
-
 def skill_history_data_api(request, skill_name):
     """
     API endpoint to fetch skill history data for multiple players,
-    downsampling to the last data point per hour, day, or week.
+    downsampling to the LAST data point per hour, day, or week.
     """
     player_names_str = request.GET.get("players", "")
     if not player_names_str:
@@ -68,50 +48,61 @@ def skill_history_data_api(request, skill_name):
     player_names = player_names_str.split(",")
     period = request.GET.get("period", "all")
 
-    history_query = PlayerHistory.objects.filter(
-        group_member__player_name__in=player_names
-    ).order_by("timestamp")
-
-    downsampled_records = []
-
-    if period == "all":
-        downsampled_records = list(history_query)
-    else:
-        for key, group in groupby(
-            history_query, key=lambda h: get_time_grouping_key(h, period)
-        ):
-            downsampled_records.append(list(group)[-1])
-
-    if not downsampled_records:
-        return JsonResponse({"timestamps": [], "datasets": []})
-
-    timestamps = sorted(list(set(h.timestamp for h in downsampled_records)))
-    formatted_timestamps = [ts.strftime("%Y-%m-%d %H:%M") for ts in timestamps]
-
     datasets = []
+
     for player_name in player_names:
-        player_history = [
-            h for h in downsampled_records if h.group_member.player_name == player_name
-        ]
+        # Base query for each player
+        history_query = PlayerHistory.objects.filter(
+            group_member__player_name=player_name
+        ).order_by("timestamp")
 
-        value_map = {}
-        if skill_name == "overall":
-            for h in player_history:
-                value_map[h.timestamp] = h.data.get("data", {}).get("Overall", 0)
+        downsampled_records = []
+        if period == "all":
+            downsampled_records = list(history_query)
         else:
-            for h in player_history:
-                value_map[h.timestamp] = h.data.get("data", {}).get(
-                    skill_name.capitalize(), 0
-                )
 
-        skill_values = [value_map.get(ts) for ts in timestamps]
+            def key_func_hour(h):
+                return h.timestamp.strftime("%Y-%m-%d %H")
+
+            def key_func_day(h):
+                return h.timestamp.date()
+
+            def key_func_week(h):
+                return h.timestamp.strftime("%Y-%U")
+
+            if period == "hour":
+                key_func = key_func_hour
+            elif period == "day":
+                key_func = key_func_day
+            elif period == "week":
+                key_func = key_func_week
+
+            # Group records by the key and take the LAST record from each group
+            for key, group in groupby(history_query, key=key_func):
+                downsampled_records.append(list(group)[-1])
+
+        if not downsampled_records:
+            continue
+
+        # Prepare data points as {x, y} objects for Chart.js
+        chart_data = []
+        value_key = (
+            "Overall_level" if skill_name == "overall" else skill_name.capitalize()
+        )
+
+        for record in downsampled_records:
+            chart_data.append(
+                {
+                    "x": record.timestamp.strftime("%Y-%m-%d %H:%M"),
+                    "y": record.data.get("data", {}).get(value_key, 0),
+                }
+            )
 
         datasets.append(
             {
                 "label": player_name,
-                "data": skill_values,
+                "data": chart_data,
             }
         )
 
-    response_data = {"timestamps": formatted_timestamps, "datasets": datasets}
-    return JsonResponse(response_data)
+    return JsonResponse({"datasets": datasets})

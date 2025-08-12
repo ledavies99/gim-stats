@@ -40,27 +40,31 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
 <script>
+    // --- Elements ---
     const chartTitleEl = document.getElementById('chart-title');
     const chartCanvas = document.getElementById('historyChart');
     const playerCheckboxes = document.querySelectorAll('.player-checkbox');
     const timeFilterBtns = document.querySelectorAll('.time-filter-btn');
 
+    // --- Chart State ---
     const skillName = '{{ skill_name }}';
     let historyChart = null;
     let activePeriod = 'all';
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
+    // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
     const yAxisTitle = (skillName === 'overall') ? 'Level' : 'XP';
-    chartTitleEl.textContent = (skillName === 'overall') ? `Total Level Over Time` : `${formattedSkillName} XP Over Time`;
-    
+    chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
+
+    // --- Main Function ---
     async function fetchAndRenderChart() {
-        const selectedPlayers = Array.from(document.querySelectorAll('.player-checkbox:checked')).map(cb => cb.value);
+        const selectedCheckboxes = document.querySelectorAll('.player-checkbox:checked');
+        const selectedPlayers = Array.from(selectedCheckboxes).map(cb => cb.value);
 
         if (selectedPlayers.length === 0) {
             if (historyChart) historyChart.destroy();
@@ -84,8 +88,8 @@
                 label: dataset.label,
                 data: dataset.data,
                 borderColor: chartColors[index % chartColors.length],
+                backgroundColor: 'transparent',
                 tension: 0.1,
-                fill: false,
             }));
 
             if (historyChart) historyChart.destroy();
@@ -98,18 +102,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    parsing: false, // Tell Chart.js we've already formatted the data as {x, y}
                     scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                tooltipFormat: 'DD MMM YYYY HH:mm'
-                            },
-                            title: { display: true, text: 'Timestamp', color: '#e0e0e0' },
+                        y: {
+                            title: { display: true, text: yAxisTitle, color: '#e0e0e0' },
                             ticks: { color: '#e0e0e0' },
                             grid: { color: '#5a5752' }
                         },
-                        y: {
-                            title: { display: true, text: yAxisTitle, color: '#e0e0e0' },
+                        x: {
+                            type: 'time', // Use the time scale
+                            title: { display: true, text: 'Timestamp', color: '#e0e0e0' },
                             ticks: { color: '#e0e0e0' },
                             grid: { color: '#5a5752' }
                         }
@@ -127,7 +129,11 @@
         }
     }
 
-    playerCheckboxes.forEach(checkbox => checkbox.addEventListener('change', fetchAndRenderChart));
+    // --- Event Listeners ---
+    playerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', fetchAndRenderChart);
+    });
+
     timeFilterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             timeFilterBtns.forEach(b => b.classList.remove('active'));

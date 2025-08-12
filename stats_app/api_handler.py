@@ -2,7 +2,6 @@
 
 import requests
 import json
-import time
 import os
 from datetime import timedelta
 from urllib.parse import quote
@@ -46,7 +45,6 @@ def refresh_player_cache(player_name):
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
 
     if update_player_on_temple(player_name, max_requests):
-        time.sleep(0.5)  # A short delay after a successful update trigger
         try:
             api_response = fetch_player_stats_from_api(player_name)
             cache, created = PlayerStatsCache.objects.get_or_create(

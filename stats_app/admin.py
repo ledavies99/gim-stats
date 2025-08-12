@@ -1,8 +1,6 @@
 from django.contrib import admin
 from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 
-# Register your models here.
-
 
 @admin.register(GroupMember)
 class GroupMemberAdmin(admin.ModelAdmin):

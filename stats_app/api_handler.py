@@ -6,7 +6,7 @@ import os
 from datetime import timedelta
 from urllib.parse import quote
 from django.utils import timezone
-from .models import GroupMember, PlayerStatsCache, APICallLog
+from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
 
 
@@ -54,6 +54,10 @@ def refresh_player_cache(player_name):
                 cache.data = api_response
                 cache.last_updated = timezone.now()
                 cache.save()
+
+            PlayerHistory.objects.create(
+                group_member=member, timestamp=cache.last_updated, data=api_response
+            )
             return True  # Success
         except RequestException:
             return False  # Failed to fetch new data

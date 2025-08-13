@@ -48,13 +48,15 @@ def refresh_player_cache(player_name):
         try:
             api_response = fetch_player_stats_from_api(player_name)
 
-            # Dynamically check all skills from config.json
             skill_names = config.get("skills", [])
             skill_xp_values = [
                 api_response.get("data", {}).get(skill, 0) for skill in skill_names
             ]
-            # Only proceed if all skills are above 0 XP
-            if skill_xp_values and all(xp > 0 for xp in skill_xp_values):
+            zero_skills = [
+                skill for skill, xp in zip(skill_names, skill_xp_values) if xp == 0
+            ]
+            # Only proceed if 8 or fewer skills are missing XP
+            if skill_xp_values and len(zero_skills) <= 8:
                 cache, created = PlayerStatsCache.objects.get_or_create(
                     group_member=member, defaults={"data": api_response}
                 )

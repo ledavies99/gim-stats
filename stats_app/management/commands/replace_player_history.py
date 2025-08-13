@@ -29,9 +29,6 @@ class Command(BaseCommand):
             )
             return
         datapoints = resp.json()
-        print(
-            f"API response keys: {list(datapoints.get('data', {}).keys())}"
-        )  # <--- Add this line
 
         # Handle API error response
         if isinstance(datapoints, dict) and "error" in datapoints:
@@ -53,21 +50,20 @@ class Command(BaseCommand):
         created_count = 0
         data_points = datapoints.get("data", {})
         for i, (timestamp_str, stats) in enumerate(sorted(data_points.items())):
+            zero_skills = [
+                k
+                for k, v in stats.items()
+                if isinstance(v, (int, float))
+                and not k.endswith("_ehp")
+                and k != "date"
+                and v == 0
+            ]
+            if len(zero_skills) > 8:
+                print(
+                    f"Datapoint {timestamp_str} skipped (more than 8 skills missing XP): {zero_skills}"
+                )
+                continue
             try:
-                # Filter: skip if any skill (excluding _ehp and non-numeric) is 0
-                has_zero_skill = False
-                for k, v in stats.items():
-                    if (
-                        isinstance(v, (int, float))
-                        and not k.endswith("_ehp")
-                        and k != "date"
-                        and v == 0
-                    ):
-                        has_zero_skill = True
-                        break
-                if has_zero_skill:
-                    continue
-
                 dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S").replace(
                     tzinfo=timezone.utc
                 )

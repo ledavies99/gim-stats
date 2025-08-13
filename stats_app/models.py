@@ -27,7 +27,7 @@ class PlayerHistory(models.Model):
     """
 
     group_member = models.ForeignKey(GroupMember, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField()
     data = JSONField()
 
     def __str__(self):

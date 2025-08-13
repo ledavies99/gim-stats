@@ -1,25 +1,11 @@
 from django.core.management.base import BaseCommand
 from stats_app.models import GroupMember, PlayerHistory
 import requests
-from django.utils import timezone
-import time
-
-
-def rate_limited_requests(requests_per_minute):
-    interval = 60.0 / requests_per_minute
-    last_time = [0.0]
-
-    def wait():
-        elapsed = time.time() - last_time[0]
-        if elapsed < interval:
-            time.sleep(interval - elapsed)
-        last_time[0] = time.time()
-
-    return wait
+from datetime import datetime, timezone
 
 
 class Command(BaseCommand):
-    help = "Replace PlayerHistory for a player by fetching all datapoints from TempleOSRS (max 5 requests/minute)"
+    help = "Replace PlayerHistory for a player by fetching all datapoints from TempleOSRS (up to 200 datapoints)"
 
     def add_arguments(self, parser):
         parser.add_argument("player_name", type=str, help="The RSN of the player")
@@ -34,18 +20,24 @@ class Command(BaseCommand):
             )
             return
 
-        # 1. Get all timestamps
-        datapoints_url = (
-            f"https://templeosrs.com/api/player_datapoints.php?player={player_name}"
-        )
+        # 1. Get all datapoints (up to 200) for the player
+        datapoints_url = f"https://templeosrs.com/api/player_datapoints.php?player={player_name}&time=10000000000"
         resp = requests.get(datapoints_url)
         if not resp.ok:
             self.stdout.write(
                 self.style.ERROR("Failed to fetch datapoints from TempleOSRS.")
             )
             return
-        timestamps = resp.json()
-        if not timestamps:
+        datapoints = resp.json()
+        print(
+            f"API response keys: {list(datapoints.get('data', {}).keys())}"
+        )  # <--- Add this line
+
+        # Handle API error response
+        if isinstance(datapoints, dict) and "error" in datapoints:
+            self.stdout.write(self.style.ERROR(f"API error: {datapoints['error']}"))
+            return
+        if not datapoints:
             self.stdout.write(
                 self.style.WARNING("No datapoints found for this player.")
             )
@@ -57,25 +49,39 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Deleted existing PlayerHistory for {player_name}.")
         )
 
-        # 3. Fetch and create new PlayerHistory entries (rate limited)
+        # 3. Create new PlayerHistory entries from datapoints
         created_count = 0
-        wait = rate_limited_requests(5)  # 5 requests per minute
+        data_points = datapoints.get("data", {})
+        for i, (timestamp_str, stats) in enumerate(sorted(data_points.items())):
+            try:
+                # Filter: skip if any skill (excluding _ehp and non-numeric) is 0
+                has_zero_skill = False
+                for k, v in stats.items():
+                    if (
+                        isinstance(v, (int, float))
+                        and not k.endswith("_ehp")
+                        and k != "date"
+                        and v == 0
+                    ):
+                        has_zero_skill = True
+                        break
+                if has_zero_skill:
+                    continue
 
-        for i, ts in enumerate(timestamps):
-            wait()  # Wait if needed to respect rate limit
-            stats_url = f"https://templeosrs.com/api/player_stats.php?player={player_name}&date={ts}&bosses=1"
-            stats_resp = requests.get(stats_url)
-            if stats_resp.ok:
-                data = stats_resp.json()
-                dt = timezone.datetime.fromtimestamp(ts, tz=timezone.utc)
+                dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S").replace(
+                    tzinfo=timezone.utc
+                )
+                stats_with_date = dict(stats)
+                stats_with_date["date"] = timestamp_str
+
                 PlayerHistory.objects.create(
-                    group_member=member, timestamp=dt, data=data
+                    group_member=member, timestamp=dt, data={"data": stats_with_date}
                 )
                 created_count += 1
-                self.stdout.write(f"Added datapoint {i + 1}/{len(timestamps)} ({dt})")
-            else:
+                self.stdout.write(f"Added datapoint {i + 1}/{len(data_points)} ({dt})")
+            except Exception as e:
                 self.stdout.write(
-                    self.style.WARNING(f"Failed to fetch stats for timestamp {ts}")
+                    self.style.WARNING(f"Failed to process datapoint {i + 1}: {e}")
                 )
 
         self.stdout.write(

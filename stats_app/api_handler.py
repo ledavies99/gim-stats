@@ -47,24 +47,27 @@ def refresh_player_cache(player_name):
     if update_player_on_temple(player_name, max_requests):
         try:
             api_response = fetch_player_stats_from_api(player_name)
-            cache, created = PlayerStatsCache.objects.get_or_create(
-                group_member=member, defaults={"data": api_response}
-            )
-            if not created:
-                cache.data = api_response
-                cache.last_updated = timezone.now()
-                cache.save()
 
             # Dynamically check all skills from config.json
             skill_names = config.get("skills", [])
             skill_xp_values = [
                 api_response.get("data", {}).get(skill, 0) for skill in skill_names
             ]
+            # Only proceed if all skills are above 0 XP
             if skill_xp_values and all(xp > 0 for xp in skill_xp_values):
+                cache, created = PlayerStatsCache.objects.get_or_create(
+                    group_member=member, defaults={"data": api_response}
+                )
+                if not created:
+                    cache.data = api_response
+                    cache.last_updated = timezone.now()
+                    cache.save()
+
                 PlayerHistory.objects.create(
                     group_member=member, timestamp=cache.last_updated, data=api_response
                 )
-            return True  # Success
+                return True  # Success
+            return False  # Did not meet XP criteria
         except RequestException:
             return False  # Failed to fetch new data
     return False  # Rate limit was likely hit

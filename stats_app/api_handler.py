@@ -6,7 +6,7 @@ import os
 from datetime import timedelta
 from urllib.parse import quote
 from django.utils import timezone
-from .models import GroupMember, PlayerStatsCache, APICallLog
+from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
 
 
@@ -54,6 +54,16 @@ def refresh_player_cache(player_name):
                 cache.data = api_response
                 cache.last_updated = timezone.now()
                 cache.save()
+
+            # Dynamically check all skills from config.json
+            skill_names = config.get("skills", [])
+            skill_xp_values = [
+                api_response.get("data", {}).get(skill, 0) for skill in skill_names
+            ]
+            if skill_xp_values and all(xp > 0 for xp in skill_xp_values):
+                PlayerHistory.objects.create(
+                    group_member=member, timestamp=cache.last_updated, data=api_response
+                )
             return True  # Success
         except RequestException:
             return False  # Failed to fetch new data

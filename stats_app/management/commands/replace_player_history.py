@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from stats_app.models import GroupMember, PlayerHistory
+from stats_app.api_handler import load_config
 import requests
 from datetime import datetime, timezone
 
@@ -20,6 +21,9 @@ class Command(BaseCommand):
             )
             return
 
+        config = load_config()
+        skill_names = config.get("skills", [])
+
         # 1. Get all datapoints (up to 200) for the player
         datapoints_url = f"https://templeosrs.com/api/player_datapoints.php?player={player_name}&time=10000000000"
         resp = requests.get(datapoints_url)
@@ -30,7 +34,6 @@ class Command(BaseCommand):
             return
         datapoints = resp.json()
 
-        # Handle API error response
         if isinstance(datapoints, dict) and "error" in datapoints:
             self.stdout.write(self.style.ERROR(f"API error: {datapoints['error']}"))
             return
@@ -50,15 +53,11 @@ class Command(BaseCommand):
         created_count = 0
         data_points = datapoints.get("data", {})
         for i, (timestamp_str, stats) in enumerate(sorted(data_points.items())):
+            skill_xp_values = [stats.get(skill, 0) for skill in skill_names]
             zero_skills = [
-                k
-                for k, v in stats.items()
-                if isinstance(v, (int, float))
-                and not k.endswith("_ehp")
-                and k != "date"
-                and v == 0
+                skill for skill, xp in zip(skill_names, skill_xp_values) if xp == 0
             ]
-            if len(zero_skills) > 8:
+            if skill_xp_values and len(zero_skills) > 8:
                 print(
                     f"Datapoint {timestamp_str} skipped (more than 8 skills missing XP): {zero_skills}"
                 )

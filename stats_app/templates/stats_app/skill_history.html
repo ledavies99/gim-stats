@@ -66,19 +66,33 @@
 
     // --- Level Calculation ---
     function xpToLevel(xp) {
-        let points = 0;
-        for (let level = 1; level <= 126; level++) {
-            points += Math.floor(level + 300 * Math.pow(2, level / 7));
-            let lvl_xp = Math.floor(points / 4);
+        let lvl_xp = 0;
+        for (let level = 2; level <= 126; level++) {
+            lvl_xp += Math.floor(level + 300 * Math.pow(2, level / 7)) / 4;
             if (lvl_xp > xp) {
-                return level;
+                return level - 1;
             }
         }
         return 126;
     }
 
+    // --- Chart Title Update ---
+    function updateChartTitle() {
+        if (yMode === 'level') {
+            chartTitleEl.textContent = (skillName === 'overall')
+                ? 'Total Level Over Time'
+                : `${formattedSkillName} Level Over Time`;
+        } else {
+            chartTitleEl.textContent = (skillName === 'overall')
+                ? 'Total XP Over Time'
+                : `${formattedSkillName} XP Over Time`;
+        }
+    }
+
     // --- Main Function ---
     async function fetchAndRenderChart() {
+        updateChartTitle();
+
         const selectedCheckboxes = document.querySelectorAll('.player-checkbox:checked');
         const selectedPlayers = Array.from(selectedCheckboxes).map(cb => cb.value);
 
@@ -183,6 +197,7 @@
                 yModeBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 yMode = btn.dataset.mode;
+                updateChartTitle();
                 fetchAndRenderChart();
             });
         });
@@ -212,8 +227,7 @@
             btn.classList.toggle('active', btn.dataset.mode === 'hide');
         });
 
-        chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
-
+        updateChartTitle();
         setupChartEventListeners();
 
         const initiallyChecked = document.querySelector('.player-checkbox:checked');

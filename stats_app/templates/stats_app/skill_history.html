@@ -26,19 +26,20 @@
                 {% endfor %}
             </div>
 
-            <!-- XP/Level toggle buttons -->
-            <div id="y-mode-selection" class="mb-3">
-                <div class="btn-group" role="group" aria-label="Y-Axis Mode">
-                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn" data-mode="xp">XP</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn active" data-mode="level">Level</button>
+            <div class="d-flex mb-3 align-items-center" style="gap: 1rem;">
+                <!-- XP/Level toggle buttons-->
+                <div id="y-mode-selection">
+                    <div class="btn-group" role="group" aria-label="Y-Axis Mode">
+                        <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn" data-mode="xp">XP</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn active" data-mode="level">Level</button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Show/Hide Points toggle buttons -->
-            <div id="point-style-selection" class="mb-3">
-                <div class="btn-group" role="group" aria-label="Point Style">
-                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="show">Show Points</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="hide">Hide Points</button>
+                <!-- Show/Hide Points toggle buttons-->
+                <div id="point-style-selection">
+                    <div class="btn-group" role="group" aria-label="Point Style">
+                        <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="show">Show Points</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="hide">Hide Points</button>
+                    </div>
                 </div>
             </div>
 

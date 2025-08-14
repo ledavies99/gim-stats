@@ -15,17 +15,25 @@
                 <h4>Select Players</h4>
                 {% for player in all_players %}
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ forloop.counter }}" {% if player.player_name == selected_player_name %}checked{% endif %}>
+                    <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ forloop.counter }}" {% if player.player_name|lower == selected_player_name|lower %}checked{% endif %}>
                     <label class="form-check-label" for="player_{{ forloop.counter }}">{{ player.player_name }}</label>
                 </div>
                 {% endfor %}
             </div>
 
-            <div id="time-filter-selection" class="mb-3">
-                <div class="btn-group" role="group" aria-label="Timeframe filter">
-                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn active" data-period="hour">Hour</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn" data-period="day">Day</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary time-filter-btn" data-period="week">Week</button>
+            <!-- XP/Level toggle buttons -->
+            <div id="y-mode-selection" class="mb-3">
+                <div class="btn-group" role="group" aria-label="Y-Axis Mode">
+                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn" data-mode="xp">XP</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn active" data-mode="level">Level</button>
+                </div>
+            </div>
+
+            <!-- Show/Hide Points toggle buttons -->
+            <div id="point-style-selection" class="mb-3">
+                <div class="btn-group" role="group" aria-label="Point Style">
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="show">Show Points</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="hide">Hide Points</button>
                 </div>
             </div>
 
@@ -44,27 +52,47 @@
 
 <script>
     // --- Elements ---
-    let chartTitleEl, chartCanvas, playerCheckboxes, timeFilterBtns;
+    let chartTitleEl, chartCanvas, playerCheckboxes, yModeBtns, pointStyleBtns;
 
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
     let historyChart = null;
-    let activePeriod = 'hour'; // Default to hour
+    let yMode = 'level'; // Default to 'level'
+    let pointStyle = 'hide'; // Default to 'hide'
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
     // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
-    const yAxisTitle = (skillName === 'overall') ? 'Level' : 'XP';
 
-    // --- Time Unit Options ---
-    const timeUnitOptions = {
-        hour: { unit: 'hour', displayFormat: 'HH:mm' },
-        day: { unit: 'day', displayFormat: 'MMM d' },
-        week: { unit: 'week', displayFormat: "'Week' w" }
-    };
+    // --- Level Calculation ---
+    function xpToLevel(xp) {
+        let lvl_xp = 0;
+        for (let level = 2; level <= 126; level++) {
+            lvl_xp += Math.floor(level + 300 * Math.pow(2, level / 7)) / 4;
+            if (lvl_xp > xp) {
+                return level - 1;
+            }
+        }
+        return 126;
+    }
+
+    // --- Chart Title Update ---
+    function updateChartTitle() {
+        if (yMode === 'level') {
+            chartTitleEl.textContent = (skillName === 'overall')
+                ? 'Total Level Over Time'
+                : `${formattedSkillName} Level Over Time`;
+        } else {
+            chartTitleEl.textContent = (skillName === 'overall')
+                ? 'Total XP Over Time'
+                : `${formattedSkillName} XP Over Time`;
+        }
+    }
 
     // --- Main Function ---
     async function fetchAndRenderChart() {
+        updateChartTitle();
+
         const selectedCheckboxes = document.querySelectorAll('.player-checkbox:checked');
         const selectedPlayers = Array.from(selectedCheckboxes).map(cb => cb.value);
 
@@ -86,19 +114,31 @@
                 return;
             }
 
+            // Map data to XP or Level
+            const pointRadius = pointStyle === 'show' ? 3 : 0;
             const datasets = data.datasets.map((dataset, index) => ({
                 label: dataset.label,
-                data: dataset.data,
+                data: dataset.data.map(point => ({
+                    x: point.x,
+                    y: yMode === 'level' ? xpToLevel(point.y) : point.y
+                })),
                 borderColor: chartColors[index % chartColors.length],
                 backgroundColor: 'transparent',
                 tension: 0.1,
+                pointRadius: pointRadius,
+                pointHoverRadius: pointRadius ? 6 : 0,
             }));
 
             if (historyChart) historyChart.destroy();
 
-            // Use selected time unit for x-axis
-            const selectedUnit = activePeriod in timeUnitOptions ? activePeriod : 'day';
-            const { unit, displayFormat } = timeUnitOptions[selectedUnit];
+            // Always use days for x-axis
+            const unit = 'day';
+            const displayFormat = 'MMM d';
+
+            // Y-axis label
+            const yAxisTitle = yMode === 'level'
+                ? 'Level'
+                : (skillName === 'overall' ? 'Level' : 'XP');
 
             historyChart = new Chart(chartCanvas.getContext('2d'), {
                 type: 'line',
@@ -127,24 +167,7 @@
                                 color: '#e0e0e0',
                                 callback: function(value, index, ticks) {
                                     const date = new Date(value);
-                                    if (unit === 'hour') {
-                                        if (date.getHours() === 0) {
-                                            return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-                                        } else {
-                                            return date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-                                        }
-                                    }
-                                    if (unit === 'day') {
-                                        return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-                                    }
-                                    if (unit === 'week') {
-                                        const monday = new Date(date);
-                                        const day = monday.getDay();
-                                        const diff = monday.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-                                        monday.setDate(diff);
-                                        return monday.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-                                    }
-                                    return this.getLabelForValue(value);
+                                    return date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
                                 }
                             },
                             grid: { color: '#5a5752' }
@@ -169,11 +192,21 @@
             checkbox.addEventListener('change', fetchAndRenderChart);
         });
 
-        timeFilterBtns.forEach(btn => {
+        yModeBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                timeFilterBtns.forEach(b => b.classList.remove('active'));
+                yModeBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                activePeriod = btn.dataset.period;
+                yMode = btn.dataset.mode;
+                updateChartTitle();
+                fetchAndRenderChart();
+            });
+        });
+
+        pointStyleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                pointStyleBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                pointStyle = btn.dataset.mode;
                 fetchAndRenderChart();
             });
         });
@@ -183,10 +216,18 @@
         chartTitleEl = document.getElementById('chart-title');
         chartCanvas = document.getElementById('historyChart');
         playerCheckboxes = document.querySelectorAll('.player-checkbox');
-        timeFilterBtns = document.querySelectorAll('.time-filter-btn');
+        yModeBtns = document.querySelectorAll('.y-mode-btn');
+        pointStyleBtns = document.querySelectorAll('.point-style-btn');
 
-        chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
+        // Set default active buttons for Level and Hide Points
+        yModeBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === 'level');
+        });
+        pointStyleBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === 'hide');
+        });
 
+        updateChartTitle();
         setupChartEventListeners();
 
         const initiallyChecked = document.querySelector('.player-checkbox:checked');

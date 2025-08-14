@@ -29,6 +29,14 @@
                 </div>
             </div>
 
+            <!-- Show/Hide Points toggle buttons -->
+            <div id="point-style-selection" class="mb-3">
+                <div class="btn-group" role="group" aria-label="Point Style">
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="show">Show Points</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="hide">Hide Points</button>
+                </div>
+            </div>
+
             <h2 id="chart-title"></h2>
             <div class="chart-container">
                 <canvas id="historyChart"></canvas>
@@ -44,12 +52,13 @@
 
 <script>
     // --- Elements ---
-    let chartTitleEl, chartCanvas, playerCheckboxes, yModeBtns;
+    let chartTitleEl, chartCanvas, playerCheckboxes, yModeBtns, pointStyleBtns;
 
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
     let historyChart = null;
     let yMode = 'xp'; // 'xp' or 'level'
+    let pointStyle = 'show'; // 'show' or 'hide'
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
     // --- Dynamic Titles ---
@@ -92,6 +101,7 @@
             }
 
             // Map data to XP or Level
+            const pointRadius = pointStyle === 'show' ? 3 : 0;
             const datasets = data.datasets.map((dataset, index) => ({
                 label: dataset.label,
                 data: dataset.data.map(point => ({
@@ -101,6 +111,8 @@
                 borderColor: chartColors[index % chartColors.length],
                 backgroundColor: 'transparent',
                 tension: 0.1,
+                pointRadius: pointRadius,
+                pointHoverRadius: pointRadius ? 6 : 0,
             }));
 
             if (historyChart) historyChart.destroy();
@@ -174,6 +186,15 @@
                 fetchAndRenderChart();
             });
         });
+
+        pointStyleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                pointStyleBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                pointStyle = btn.dataset.mode;
+                fetchAndRenderChart();
+            });
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -181,6 +202,7 @@
         chartCanvas = document.getElementById('historyChart');
         playerCheckboxes = document.querySelectorAll('.player-checkbox');
         yModeBtns = document.querySelectorAll('.y-mode-btn');
+        pointStyleBtns = document.querySelectorAll('.point-style-btn');
 
         chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
 

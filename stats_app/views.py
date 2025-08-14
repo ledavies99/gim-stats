@@ -41,6 +41,7 @@ def skill_history_data_api(request, skill_name):
     keeping only the first and last point of each run of identical y-values.
     """
     player_names_str = request.GET.get("players", "")
+    ymode = request.GET.get("ymode", "xp")
     if not player_names_str:
         return JsonResponse({"error": "No players selected"}, status=400)
 
@@ -58,18 +59,27 @@ def skill_history_data_api(request, skill_name):
 
         chart_data = []
         value_key = skill_name.capitalize()
+        level_key = f"{value_key}_level"  # e.g. "Attack_level"
         prev_y = None
         run_start = None
 
         history_list = list(history_query)
         for i, record in enumerate(history_list):
-            y_val = int(record.data.get("data", {}).get(value_key, 0) or 0)
+            if ymode == "level":
+                y_val = int(record.data.get("data", {}).get(level_key, 1) or 1)
+            else:
+                y_val = int(record.data.get("data", {}).get(value_key, 0) or 0)
             if prev_y is None or y_val != prev_y:
                 if run_start is not None and i > 0:
                     last_record = history_list[i - 1]
-                    last_y = int(
-                        last_record.data.get("data", {}).get(value_key, 0) or 0
-                    )
+                    if ymode == "level":
+                        last_y = int(
+                            last_record.data.get("data", {}).get(level_key, 1) or 1
+                        )
+                    else:
+                        last_y = int(
+                            last_record.data.get("data", {}).get(value_key, 0) or 0
+                        )
                     if last_record.timestamp != run_start.timestamp:
                         chart_data.append(
                             {
@@ -90,7 +100,10 @@ def skill_history_data_api(request, skill_name):
 
         if history_list:
             last_record = history_list[-1]
-            last_y = int(last_record.data.get("data", {}).get(value_key, 0) or 0)
+            if ymode == "level":
+                last_y = int(last_record.data.get("data", {}).get(level_key, 1) or 1)
+            else:
+                last_y = int(last_record.data.get("data", {}).get(value_key, 0) or 0)
             if not chart_data or chart_data[-1]["x"] != last_record.timestamp.strftime(
                 "%Y-%m-%dT%H:%M:%S"
             ):

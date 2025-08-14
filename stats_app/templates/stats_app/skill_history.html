@@ -70,18 +70,6 @@
     // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
 
-    // --- Level Calculation ---
-    function xpToLevel(xp) {
-        let lvl_xp = 0;
-        for (let level = 2; level <= 126; level++) {
-            lvl_xp += Math.floor(level + 300 * Math.pow(2, level / 7)) / 4;
-            if (lvl_xp > xp) {
-                return level - 1;
-            }
-        }
-        return 126;
-    }
-
     // --- Chart Title Update ---
     function updateChartTitle() {
         if (yMode === 'level') {
@@ -108,7 +96,7 @@
         }
 
         const playerQueryString = selectedPlayers.join(',');
-        const apiUrl = `/api/history_data/${skillName}/?players=${playerQueryString}`;
+        const apiUrl = `/api/history_data/${skillName}/?players=${playerQueryString}&ymode=${yMode}`;
 
         try {
             const response = await fetch(apiUrl);
@@ -124,10 +112,7 @@
             const pointRadius = pointStyle === 'show' ? 3 : 0;
             const datasets = data.datasets.map((dataset, index) => ({
                 label: dataset.label,
-                data: dataset.data.map(point => ({
-                    x: point.x,
-                    y: yMode === 'level' ? xpToLevel(point.y) : point.y
-                })),
+                data: dataset.data,
                 borderColor: chartColors[index % chartColors.length],
                 backgroundColor: 'transparent',
                 tension: 0.1,

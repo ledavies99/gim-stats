@@ -5,6 +5,15 @@ import requests
 from datetime import datetime, timezone
 
 
+def xp_to_level(xp):
+    lvl_xp = 0
+    for level in range(1, 127):  # 126 is max
+        lvl_xp += int((level + 300 * 2 ** (level / 7)) // 4)
+        if lvl_xp > xp:
+            return level
+    return 126
+
+
 class Command(BaseCommand):
     help = "Replace PlayerHistory for a player by fetching all datapoints from TempleOSRS (up to 200 datapoints)"
 
@@ -68,6 +77,15 @@ class Command(BaseCommand):
                 )
                 stats_with_date = dict(stats)
                 stats_with_date["date"] = timestamp_str
+
+                # Add level fields for each skill and sum for overall
+                overall_level = 0
+                for skill in skill_names:
+                    xp = stats.get(skill, 0)
+                    level = xp_to_level(xp)
+                    stats_with_date[f"{skill}_level"] = level
+                    overall_level += level
+                stats_with_date["Overall_level"] = overall_level
 
                 PlayerHistory.objects.create(
                     group_member=member, timestamp=dt, data={"data": stats_with_date}

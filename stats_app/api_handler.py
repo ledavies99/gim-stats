@@ -100,7 +100,7 @@ def get_player_stats_from_cache(player_name):
     parsed_bosses = parse_bosses(player_data, config)
 
     return PlayerStats(
-        player_name=player_info.get("Username", "Unknown"),
+        player_name=member.player_name,
         timestamp=player_info.get("Last checked", "N/A"),
         skills=parsed_skills,
         bosses=parsed_bosses,

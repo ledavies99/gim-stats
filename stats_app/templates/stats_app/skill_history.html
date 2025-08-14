@@ -15,7 +15,7 @@
                 <h4>Select Players</h4>
                 {% for player in all_players %}
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ forloop.counter }}" {% if player.player_name == selected_player_name %}checked{% endif %}>
+                    <input class="form-check-input player-checkbox" type="checkbox" value="{{ player.player_name }}" id="player_{{ forloop.counter }}" {% if player.player_name|lower == selected_player_name|lower %}checked{% endif %}>
                     <label class="form-check-label" for="player_{{ forloop.counter }}">{{ player.player_name }}</label>
                 </div>
                 {% endfor %}
@@ -24,16 +24,16 @@
             <!-- XP/Level toggle buttons -->
             <div id="y-mode-selection" class="mb-3">
                 <div class="btn-group" role="group" aria-label="Y-Axis Mode">
-                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn active" data-mode="xp">XP</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn" data-mode="level">Level</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn" data-mode="xp">XP</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary y-mode-btn active" data-mode="level">Level</button>
                 </div>
             </div>
 
             <!-- Show/Hide Points toggle buttons -->
             <div id="point-style-selection" class="mb-3">
                 <div class="btn-group" role="group" aria-label="Point Style">
-                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="show">Show Points</button>
-                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="hide">Hide Points</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn" data-mode="show">Show Points</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="hide">Hide Points</button>
                 </div>
             </div>
 
@@ -57,8 +57,8 @@
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
     let historyChart = null;
-    let yMode = 'xp'; // 'xp' or 'level'
-    let pointStyle = 'show'; // 'show' or 'hide'
+    let yMode = 'level'; // Default to 'level'
+    let pointStyle = 'hide'; // Default to 'hide'
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
 
     // --- Dynamic Titles ---
@@ -203,6 +203,14 @@
         playerCheckboxes = document.querySelectorAll('.player-checkbox');
         yModeBtns = document.querySelectorAll('.y-mode-btn');
         pointStyleBtns = document.querySelectorAll('.point-style-btn');
+
+        // Set default active buttons for Level and Hide Points
+        yModeBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === 'level');
+        });
+        pointStyleBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === 'hide');
+        });
 
         chartTitleEl.textContent = (skillName === 'overall') ? 'Total Level Over Time' : `${formattedSkillName} XP Over Time`;
 

@@ -61,29 +61,34 @@ class Command(BaseCommand):
         # 3. Create new PlayerHistory entries from datapoints
         created_count = 0
         data_points = datapoints.get("data", {})
+
+        # Carry forward previous values for missing skills
+        previous_xp = {skill: 0 for skill in skill_names}
+
         for i, (timestamp_str, stats) in enumerate(sorted(data_points.items())):
-            skill_xp_values = [stats.get(skill, 0) for skill in skill_names]
-            zero_skills = [
-                skill for skill, xp in zip(skill_names, skill_xp_values) if xp == 0
-            ]
-            if skill_xp_values and len(zero_skills) > 8:
-                print(
-                    f"Datapoint {timestamp_str} skipped (more than 8 skills missing XP): {zero_skills}"
-                )
-                continue
+            stats_with_date = dict(stats)
+            stats_with_date["date"] = timestamp_str
+
+            # Carry forward previous values for missing skills
+            for skill in skill_names:
+                xp = stats.get(skill)
+                if xp is None or xp == 0:
+                    xp = previous_xp.get(skill, 0)
+                else:
+                    previous_xp[skill] = xp
+                stats_with_date[skill] = xp
+
             try:
                 dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S").replace(
                     tzinfo=timezone.utc
                 )
-                stats_with_date = dict(stats)
-                stats_with_date["date"] = timestamp_str
 
                 # Add level fields for each skill and sum for overall
                 overall_level = 0
                 for skill in skill_names:
                     if skill.lower() == "overall":
                         continue  # Skip the "Overall" skill
-                    xp = stats.get(skill, 0)
+                    xp = stats_with_date.get(skill, 0)
                     level = xp_to_level(xp)
                     stats_with_date[f"{skill}_level"] = level
                     overall_level += level

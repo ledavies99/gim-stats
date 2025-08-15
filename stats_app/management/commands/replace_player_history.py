@@ -69,13 +69,14 @@ class Command(BaseCommand):
             stats_with_date = dict(stats)
             stats_with_date["date"] = timestamp_str
 
-            # Carry forward previous values for missing skills
             for skill in skill_names:
                 xp = stats.get(skill)
-                if xp is None or xp == 0:
-                    xp = previous_xp.get(skill, 0)
-                else:
-                    previous_xp[skill] = xp
+                prev = previous_xp.get(skill, 0)
+                if xp is None:
+                    xp = prev
+                elif xp < prev:
+                    xp = prev
+                previous_xp[skill] = xp
                 stats_with_date[skill] = xp
 
             try:

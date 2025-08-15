@@ -61,8 +61,12 @@ def refresh_player_cache(player_name):
             api_data = api_response.get("data", {})
             for skill in skill_names:
                 xp = api_data.get(skill)
-                if xp is None or xp == 0:
-                    api_data[skill] = previous_data.get(skill, 0)
+                prev = previous_data.get(skill, 0)
+                if xp is None:
+                    xp = prev
+                elif xp < prev:
+                    xp = prev
+                api_data[skill] = xp
 
             api_response["data"] = api_data
 

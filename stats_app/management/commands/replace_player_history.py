@@ -81,6 +81,8 @@ class Command(BaseCommand):
                 # Add level fields for each skill and sum for overall
                 overall_level = 0
                 for skill in skill_names:
+                    if skill.lower() == "overall":
+                        continue  # Skip the "Overall" skill
                     xp = stats.get(skill, 0)
                     level = xp_to_level(xp)
                     stats_with_date[f"{skill}_level"] = level

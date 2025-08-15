@@ -142,7 +142,13 @@
                     scales: {
                         y: {
                             title: { display: true, text: yAxisTitle, color: '#e0e0e0' },
-                            ticks: { color: '#e0e0e0' },
+                            ticks: {
+                                color: '#e0e0e0',
+                                callback: function(value) {
+                                    // Only show integer ticks
+                                    return Number.isInteger(value) ? value : null;
+                                }
+                            },
                             grid: { color: '#5a5752' }
                         },
                         x: {

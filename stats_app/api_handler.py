@@ -49,27 +49,39 @@ def refresh_player_cache(player_name):
             api_response = fetch_player_stats_from_api(player_name)
 
             skill_names = config.get("skills", [])
-            skill_xp_values = [
-                api_response.get("data", {}).get(skill, 0) for skill in skill_names
-            ]
-            zero_skills = [
-                skill for skill, xp in zip(skill_names, skill_xp_values) if xp == 0
-            ]
-            # Only proceed if 8 or fewer skills are missing XP
-            if skill_xp_values and len(zero_skills) <= 8:
-                cache, created = PlayerStatsCache.objects.get_or_create(
-                    group_member=member, defaults={"data": api_response}
-                )
-                if not created:
-                    cache.data = api_response
-                    cache.last_updated = timezone.now()
-                    cache.save()
 
-                PlayerHistory.objects.create(
-                    group_member=member, timestamp=cache.last_updated, data=api_response
+            try:
+                last_history = PlayerHistory.objects.filter(group_member=member).latest(
+                    "timestamp"
                 )
-                return True  # Success
-            return False  # Did not meet XP criteria
+                previous_data = last_history.data.get("data", {})
+            except PlayerHistory.DoesNotExist:
+                previous_data = {}
+
+            api_data = api_response.get("data", {})
+            for skill in skill_names:
+                xp = api_data.get(skill)
+                prev = previous_data.get(skill, 0)
+                if xp is None:
+                    xp = prev
+                elif xp < prev:
+                    xp = prev
+                api_data[skill] = xp
+
+            api_response["data"] = api_data
+
+            cache, created = PlayerStatsCache.objects.get_or_create(
+                group_member=member, defaults={"data": api_response}
+            )
+            if not created:
+                cache.data = api_response
+                cache.last_updated = timezone.now()
+                cache.save()
+
+            PlayerHistory.objects.create(
+                group_member=member, timestamp=cache.last_updated, data=api_response
+            )
+            return True  # Success
         except RequestException:
             return False  # Failed to fetch new data
     return False  # Rate limit was likely hit

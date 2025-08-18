@@ -152,16 +152,15 @@ main {
     visibility: visible;
 }
 
-/* Collapsible boss stats section */
-.collapsible-boss-stats {
+/* --- Collapsible Section Parent Style --- */
+.collapsible-section {
     margin-top: 10px;
     background-color: #514b43;
     border: 1px solid #7c7365;
     border-radius: 5px;
 }
 
-/* Style the clickable header for the collapsible section */
-.collapsible-boss-stats summary {
+.collapsible-section summary {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -175,21 +174,24 @@ main {
     user-select: none;
 }
 
-/* Add a custom dropdown arrow using a pseudo-element */
-.collapsible-boss-stats summary::before {
+.collapsible-section summary::before {
     content: '▶';
     font-size: 0.8em;
     color: #ffd700;
     transition: transform 0.2s ease-in-out;
 }
 
-/* Rotate arrow when open */
-.collapsible-boss-stats[open] summary::before,
-.collapsible-xp-gained-today[open] summary::before {
+.collapsible-section[open] summary::before {
     transform: rotate(90deg);
 }
 
-/* This is a more robust way to toggle the boss grid's visibility */
+/* --- Specific Collapsible Sections --- */
+
+.collapsible-boss-stats {}
+.collapsible-xp-gained-today {}
+.collapsible-xp-gained-week {}
+
+/* Bosses section */
 .collapsible-boss-stats[open] .boss-grid {
     display: flex;
 }
@@ -219,37 +221,7 @@ main {
     font-weight: bold;
 }
 
-.collapsible-xp-gained-today {
-    margin-top: 10px;
-    background-color: #514b43;
-    border: 1px solid #7c7365;
-    border-radius: 5px;
-}
-
-.collapsible-xp-gained-today summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
-    font-weight: bold;
-    color: #fff;
-    cursor: pointer;
-    list-style: none;
-    background-color: #3f3e3a;
-    border-radius: 5px;
-    user-select: none;
-}
-
-.collapsible-xp-gained-today summary::before {
-    content: '▶';
-    font-size: 0.8em;
-    color: #ffd700;
-    transition: transform 0.2s ease-in-out;
-}
-
-/* Rotate arrow when open (already included above) */
-
-/* XP grid styling */
+/* XP gained today section */
 .collapsible-xp-gained-today[open] .xp-grid {
     display: flex;
     flex-direction: column;
@@ -260,6 +232,20 @@ main {
 }
 
 .collapsible-xp-gained-today:not([open]) .xp-grid {
+    display: none;
+}
+
+/* XP gained week section */
+.collapsible-xp-gained-week[open] .xp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #514b43;
+    border-radius: 5px;
+}
+
+.collapsible-xp-gained-week:not([open]) .xp-grid {
     display: none;
 }
 

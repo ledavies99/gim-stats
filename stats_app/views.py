@@ -4,21 +4,23 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
+from datetime import datetime, timedelta
 
-from datetime import datetime
 
-
-def get_xp_gained_today(player, skill_names):
+def get_xp_gained_period(player, skill_names, days=1):
     """
-    Returns a tuple: (total_xp_gained_today, skill_xp_gained_today_dict)
+    Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)
+    for the last `days` days (1 = today, 7 = last 7 days).
     """
     today = datetime.now().date()
-    histories = PlayerHistory.objects.filter(group_member=player).order_by("timestamp")
-    today_histories = histories.filter(timestamp__date=today)
+    start_date = today - timedelta(days=days - 1)
+    histories = PlayerHistory.objects.filter(
+        group_member=player, timestamp__date__gte=start_date, timestamp__date__lte=today
+    ).order_by("timestamp")
     skill_gains = {}
-    if today_histories.exists():
-        first = today_histories.first().data["data"]
-        last = today_histories.last().data["data"]
+    if histories.exists():
+        first = histories.first().data["data"]
+        last = histories.last().data["data"]
         for skill in skill_names:
             first_xp = first.get(skill.capitalize(), 0)
             last_xp = last.get(skill.capitalize(), 0)
@@ -53,9 +55,19 @@ def player_stats_view(request):
     for player in all_players:
         stats = get_player_stats_from_cache(player.player_name)
         if stats:
-            total_xp, skill_xp_gained_today = get_xp_gained_today(player, skill_names)
+            # Daily
+            total_xp, skill_xp_gained_today = get_xp_gained_period(
+                player, skill_names, days=1
+            )
             stats.xp_gained_today = total_xp
             stats.skill_xp_gained_today = skill_xp_gained_today
+            # Weekly
+            total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
+                player, skill_names, days=7
+            )
+            stats.xp_gained_week = total_weekly_xp
+            stats.skill_xp_gained_week = skill_xp_gained_week
+            # Current
             all_players_data.append(stats)
 
     context = {"players": all_players_data}

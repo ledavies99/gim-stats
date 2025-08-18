@@ -55,8 +55,7 @@
                             {{ player.xp_gained_today|default:0|humanize_number }}
                         </span>
                         {% if player.top_skill_today %}
-                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_today|add:'.png' %}" alt="{{ player.top_skill_today }}">
-                        {% endif %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_today|lower|add:'.png' %}" alt="{{ player.top_skill_today }}">                        {% endif %}
                     </summary>
                     <div class="xp-grid">
                         {% for skill, xp in player.skill_xp_gained_today %}
@@ -75,8 +74,7 @@
                             {{ player.xp_gained_week|default:0|humanize_number }}
                         </span>
                         {% if player.top_skill_week %}
-                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_week|add:'.png' %}" alt="{{ player.top_skill_week }}">
-                        {% endif %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_week|lower|add:'.png' %}" alt="{{ player.top_skill_week }}">                        {% endif %}
                     </summary>
                     <div class="xp-grid">
                         {% for skill, xp in player.skill_xp_gained_week %}

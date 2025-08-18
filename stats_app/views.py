@@ -28,7 +28,18 @@ def get_xp_gained_today(player, skill_names):
         for skill in skill_names:
             skill_gains[skill] = 0
         total = 0
-    return total, skill_gains
+
+    sorted_skill_gains = sorted(
+        (
+            (skill, xp)
+            for skill, xp in skill_gains.items()
+            if skill.lower() != "overall" and xp != 0
+        ),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    return total, sorted_skill_gains
 
 
 def player_stats_view(request):

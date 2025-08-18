@@ -1,4 +1,3 @@
-
 /* Global Styles */
 body {
     font-family: Arial, sans-serif;
@@ -156,7 +155,6 @@ main {
 /* Collapsible boss stats section */
 .collapsible-boss-stats {
     margin-top: 10px;
-    flex-grow: 1;
     background-color: #514b43;
     border: 1px solid #7c7365;
     border-radius: 5px;
@@ -185,6 +183,12 @@ main {
     transition: transform 0.2s ease-in-out;
 }
 
+/* Rotate arrow when open */
+.collapsible-boss-stats[open] summary::before,
+.collapsible-xp-gained-today[open] summary::before {
+    transform: rotate(90deg);
+}
+
 /* This is a more robust way to toggle the boss grid's visibility */
 .collapsible-boss-stats[open] .boss-grid {
     display: flex;
@@ -208,6 +212,72 @@ main {
     padding: 5px 10px;
     background-color: #3f3e3a;
     border-radius: 3px;
+}
+
+.boss-name {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.collapsible-xp-gained-today {
+    margin-top: 10px;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+    border-radius: 5px;
+}
+
+.collapsible-xp-gained-today summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    list-style: none;
+    background-color: #3f3e3a;
+    border-radius: 5px;
+    user-select: none;
+}
+
+.collapsible-xp-gained-today summary::before {
+    content: '▶';
+    font-size: 0.8em;
+    color: #ffd700;
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Rotate arrow when open (already included above) */
+
+/* XP grid styling */
+.collapsible-xp-gained-today[open] .xp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #514b43;
+    border-radius: 5px;
+}
+
+.collapsible-xp-gained-today:not([open]) .xp-grid {
+    display: none;
+}
+
+.xp-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background-color: #3f3e3a;
+    border-radius: 3px;
+}
+
+.xp-skill {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.xp-amount {
+    color: #e0e0e0;
 }
 
 /* Update this class to be a simple flex container */

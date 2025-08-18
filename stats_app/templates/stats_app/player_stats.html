@@ -49,30 +49,17 @@
                 </details>
                 
                 <!-- XP gained today -->
-                <details class="xp-gained-today" style="margin-top: 1em;">
-                    <summary>
-                        <strong>XP gained today:</strong>
-                        {{ player.xp_gained_today|default:0|humanize_number }}
-                    </summary>
-                    <div style="margin-top: 0.5em;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="text-align:left;">Skill</th>
-                                    <th style="text-align:right;">XP Gained</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for skill, xp in player.skill_xp_gained_today.items %}
-                                    {% if skill != 'overall' and xp != 0 %}
-                                    <tr>
-                                        <td>{{ skill|title }}</td>
-                                        <td style="text-align:right;">{{ xp|humanize_number }}</td>
-                                    </tr>
-                                    {% endif %}
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <details class="collapsible-xp-gained-today" style="margin-top: 10px;">
+                    <summary class="xp-grid-header">XP gained today: {{ player.xp_gained_today|default:0|humanize_number }}</summary>
+                    <div class="xp-grid">
+                        {% for skill, xp in player.skill_xp_gained_today %}
+                            {% if skill != 'overall' and xp != 0 %}
+                            <div class="xp-item">
+                                <span class="xp-skill">{{ skill|title }}</span>
+                                <span class="xp-amount">{{ xp|humanize_number }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </details>
 
@@ -82,4 +69,28 @@
         <p>No player data could be retrieved. Please check your internet connection or if players have been added to the database.</p>
     {% endif %}
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sync all boss dropdowns
+    document.querySelectorAll('.collapsible-boss-stats').forEach(function(details) {
+        details.addEventListener('toggle', function(e) {
+            if (e.target.open) {
+                document.querySelectorAll('.collapsible-boss-stats').forEach(function(d) { d.open = true; });
+            } else {
+                document.querySelectorAll('.collapsible-boss-stats').forEach(function(d) { d.open = false; });
+            }
+        });
+    });
+    // Sync all XP gained today dropdowns
+    document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(details) {
+        details.addEventListener('toggle', function(e) {
+            if (e.target.open) {
+                document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(d) { d.open = true; });
+            } else {
+                document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(d) { d.open = false; });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -47,6 +47,12 @@
                         {% endfor %}
                     </div>
                 </details>
+                
+                <!-- XP gained today -->
+                <div class="xp-gained-today" style="margin-top: 1em;">
+                    <strong>XP gained today:</strong>
+                    {{ player.xp_gained_today|default:0|humanize_number }}
+                </div>
 
             </section>
         {% endfor %}

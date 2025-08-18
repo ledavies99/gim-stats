@@ -4,6 +4,21 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache
+from datetime import datetime
+
+
+def get_xp_gained_today(player):
+    """
+    Returns the XP gained today for the given player (GroupMember instance).
+    """
+    today = datetime.now().date()
+    histories = PlayerHistory.objects.filter(group_member=player).order_by("timestamp")
+    today_histories = histories.filter(timestamp__date=today)
+    if today_histories.exists():
+        first = today_histories.first().data["data"].get("Overall", 0)
+        last = today_histories.last().data["data"].get("Overall", 0)
+        return last - first
+    return 0
 
 
 def player_stats_view(request):
@@ -16,6 +31,7 @@ def player_stats_view(request):
     for player in all_players:
         stats = get_player_stats_from_cache(player.player_name)
         if stats:
+            stats.xp_gained_today = get_xp_gained_today(player)
             all_players_data.append(stats)
 
     context = {"players": all_players_data}

@@ -60,13 +60,16 @@ def refresh_player_cache(player_name):
 
             api_data = api_response.get("data", {})
             for skill in skill_names:
-                xp = api_data.get(skill)
-                prev = previous_data.get(skill, 0)
-                if xp is None:
-                    xp = prev
-                elif xp < prev:
-                    xp = prev
+                # XP carry-forward
+                xp = carry_forward(api_data.get(skill), previous_data.get(skill, 0))
                 api_data[skill] = xp
+
+                # Level carry-forward
+                level_key = f"{skill}_level"
+                level = carry_forward(
+                    api_data.get(level_key), previous_data.get(level_key, 0)
+                )
+                api_data[level_key] = level
 
             api_response["data"] = api_data
 
@@ -186,6 +189,15 @@ def fetch_player_stats_from_api(player_name):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return response.json()
+
+
+def carry_forward(new_value, prev_value):
+    """Carry forward the value if it's None or less than the previous value."""
+    if new_value is None:
+        return prev_value
+    if new_value < prev_value:
+        return prev_value
+    return new_value
 
 
 def load_config():

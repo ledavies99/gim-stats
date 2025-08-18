@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from stats_app.models import GroupMember, PlayerHistory
-from stats_app.api_handler import load_config
+from stats_app.api_handler import load_config, carry_forward
 import requests
 from datetime import datetime, timezone
 
@@ -70,12 +70,7 @@ class Command(BaseCommand):
             stats_with_date["date"] = timestamp_str
 
             for skill in skill_names:
-                xp = stats.get(skill)
-                prev = previous_xp.get(skill, 0)
-                if xp is None:
-                    xp = prev
-                elif xp < prev:
-                    xp = prev
+                xp = carry_forward(stats.get(skill), previous_xp.get(skill, 0))
                 previous_xp[skill] = xp
                 stats_with_date[skill] = xp
 

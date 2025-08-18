@@ -249,6 +249,23 @@ main {
     display: none;
 }
 
+.xp-grid-header {
+    display: flex;
+    align-items: center;
+}
+
+.xp-grid-header .xp-amount {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.xp-grid-header .right-icon {
+    margin-left: 8px;
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+}
+
 .xp-item {
     display: flex;
     justify-content: space-between;

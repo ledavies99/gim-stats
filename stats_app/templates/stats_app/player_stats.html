@@ -48,35 +48,45 @@
                     </div>
                 </details>
                 
-                <!-- XP gained today -->
                 <details class="collapsible-section collapsible-xp-gained-today">
-                    <summary class="xp-grid-header">XP Today: {{ player.xp_gained_today|default:0|humanize_number }}</summary>
+                    <summary class="xp-grid-header">
+                        <span>XP Today</span>
+                        <span class="xp-amount" style="margin-left:auto;">
+                            {{ player.xp_gained_today|default:0|humanize_number }}
+                        </span>
+                        {% if player.top_skill_today %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_today|add:'.png' %}" alt="{{ player.top_skill_today }}">
+                        {% endif %}
+                    </summary>
                     <div class="xp-grid">
                         {% for skill, xp in player.skill_xp_gained_today %}
-                            {% if skill != 'overall' and xp != 0 %}
                             <div class="xp-item">
                                 <span class="xp-skill">{{ skill|title }}</span>
                                 <span class="xp-amount">{{ xp|humanize_number }}</span>
                             </div>
-                            {% endif %}
                         {% endfor %}
                     </div>
                 </details>
-
-                <!-- XP gained this week -->
+                
                 <details class="collapsible-section collapsible-xp-gained-week">
-                    <summary class="xp-grid-header">XP This Week: {{ player.xp_gained_week|default:0|humanize_number }}</summary>
+                    <summary class="xp-grid-header">
+                        <span>XP Week</span>
+                        <span class="xp-amount" style="margin-left:auto;">
+                            {{ player.xp_gained_week|default:0|humanize_number }}
+                        </span>
+                        {% if player.top_skill_week %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_week|add:'.png' %}" alt="{{ player.top_skill_week }}">
+                        {% endif %}
+                    </summary>
                     <div class="xp-grid">
                         {% for skill, xp in player.skill_xp_gained_week %}
-                            {% if skill != 'overall' and xp != 0 %}
                             <div class="xp-item">
                                 <span class="xp-skill">{{ skill|title }}</span>
                                 <span class="xp-amount">{{ xp|humanize_number }}</span>
                             </div>
-                            {% endif %}
                         {% endfor %}
                     </div>
-                </details>             
+                </details>          
 
             </section>
         {% endfor %}

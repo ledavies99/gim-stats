@@ -59,12 +59,20 @@ def player_stats_view(request):
             total_xp, skill_xp_gained_today = get_xp_gained_period(
                 player, skill_names, days=1
             )
+            top_skill_today = (
+                skill_xp_gained_today[0][0] if skill_xp_gained_today else None
+            )
+            stats.top_skill_today = top_skill_today
             stats.xp_gained_today = total_xp
             stats.skill_xp_gained_today = skill_xp_gained_today
             # Weekly
             total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
                 player, skill_names, days=7
             )
+            top_skill_week = (
+                skill_xp_gained_week[0][0] if skill_xp_gained_week else None
+            )
+            stats.top_skill_week = top_skill_week
             stats.xp_gained_week = total_weekly_xp
             stats.skill_xp_gained_week = skill_xp_gained_week
             # Current

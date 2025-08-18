@@ -3,22 +3,32 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
-from .api_handler import get_player_stats_from_cache
+from .api_handler import get_player_stats_from_cache, load_config
+
 from datetime import datetime
 
 
-def get_xp_gained_today(player):
+def get_xp_gained_today(player, skill_names):
     """
-    Returns the XP gained today for the given player (GroupMember instance).
+    Returns a tuple: (total_xp_gained_today, skill_xp_gained_today_dict)
     """
     today = datetime.now().date()
     histories = PlayerHistory.objects.filter(group_member=player).order_by("timestamp")
     today_histories = histories.filter(timestamp__date=today)
+    skill_gains = {}
     if today_histories.exists():
-        first = today_histories.first().data["data"].get("Overall", 0)
-        last = today_histories.last().data["data"].get("Overall", 0)
-        return last - first
-    return 0
+        first = today_histories.first().data["data"]
+        last = today_histories.last().data["data"]
+        for skill in skill_names:
+            first_xp = first.get(skill.capitalize(), 0)
+            last_xp = last.get(skill.capitalize(), 0)
+            skill_gains[skill] = last_xp - first_xp
+        total = skill_gains.get("Overall", 0)
+    else:
+        for skill in skill_names:
+            skill_gains[skill] = 0
+        total = 0
+    return total, skill_gains
 
 
 def player_stats_view(request):
@@ -28,10 +38,13 @@ def player_stats_view(request):
     all_players = GroupMember.objects.all().order_by("player_name")
     all_players_data = []
 
+    skill_names = load_config().get("skills", [])
     for player in all_players:
         stats = get_player_stats_from_cache(player.player_name)
         if stats:
-            stats.xp_gained_today = get_xp_gained_today(player)
+            total_xp, skill_xp_gained_today = get_xp_gained_today(player, skill_names)
+            stats.xp_gained_today = total_xp
+            stats.skill_xp_gained_today = skill_xp_gained_today
             all_players_data.append(stats)
 
     context = {"players": all_players_data}

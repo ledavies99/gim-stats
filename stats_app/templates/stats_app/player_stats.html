@@ -49,10 +49,32 @@
                 </details>
                 
                 <!-- XP gained today -->
-                <div class="xp-gained-today" style="margin-top: 1em;">
-                    <strong>XP gained today:</strong>
-                    {{ player.xp_gained_today|default:0|humanize_number }}
-                </div>
+                <details class="xp-gained-today" style="margin-top: 1em;">
+                    <summary>
+                        <strong>XP gained today:</strong>
+                        {{ player.xp_gained_today|default:0|humanize_number }}
+                    </summary>
+                    <div style="margin-top: 0.5em;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left;">Skill</th>
+                                    <th style="text-align:right;">XP Gained</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skill, xp in player.skill_xp_gained_today.items %}
+                                    {% if skill != 'overall' and xp != 0 %}
+                                    <tr>
+                                        <td>{{ skill|title }}</td>
+                                        <td style="text-align:right;">{{ xp|humanize_number }}</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
 
             </section>
         {% endfor %}

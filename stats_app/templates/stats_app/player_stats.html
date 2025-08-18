@@ -125,7 +125,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.collapsible-xp-gained-week').forEach(function(d) { d.open = false; });
             }
         });
-    });
+    function syncCollapsibleDetails(className) {
+        document.querySelectorAll('.' + className).forEach(function(details) {
+            details.addEventListener('toggle', function(e) {
+                document.querySelectorAll('.' + className).forEach(function(d) {
+                    d.open = e.target.open;
+                });
+            });
+        });
+    }
+    syncCollapsibleDetails('collapsible-boss-stats');
+    syncCollapsibleDetails('collapsible-xp-gained-today');
+    syncCollapsibleDetails('collapsible-xp-gained-week');
 });
 </script>
 {% endblock %}

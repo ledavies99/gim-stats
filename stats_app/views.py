@@ -3,7 +3,45 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
-from .api_handler import get_player_stats_from_cache
+from .api_handler import get_player_stats_from_cache, load_config
+from datetime import datetime, timedelta
+
+
+def get_xp_gained_period(player, skill_names, days=1):
+    """
+    Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)
+    for the last `days` days (1 = today, 7 = last 7 days).
+    """
+    today = datetime.now().date()
+    start_date = today - timedelta(days=days - 1)
+    histories = PlayerHistory.objects.filter(
+        group_member=player, timestamp__date__gte=start_date, timestamp__date__lte=today
+    ).order_by("timestamp")
+    skill_gains = {}
+    if histories.exists():
+        first = histories.first().data["data"]
+        last = histories.last().data["data"]
+        for skill in skill_names:
+            first_xp = first.get(skill.capitalize(), 0)
+            last_xp = last.get(skill.capitalize(), 0)
+            skill_gains[skill] = last_xp - first_xp
+        total = skill_gains.get("Overall", 0)
+    else:
+        for skill in skill_names:
+            skill_gains[skill] = 0
+        total = 0
+
+    sorted_skill_gains = sorted(
+        (
+            (skill, xp)
+            for skill, xp in skill_gains.items()
+            if skill.lower() != "overall" and xp != 0
+        ),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    return total, sorted_skill_gains
 
 
 def player_stats_view(request):
@@ -13,9 +51,31 @@ def player_stats_view(request):
     all_players = GroupMember.objects.all().order_by("player_name")
     all_players_data = []
 
+    skill_names = load_config().get("skills", [])
     for player in all_players:
         stats = get_player_stats_from_cache(player.player_name)
         if stats:
+            # Daily
+            total_xp, skill_xp_gained_today = get_xp_gained_period(
+                player, skill_names, days=1
+            )
+            top_skill_today = (
+                skill_xp_gained_today[0][0] if skill_xp_gained_today else None
+            )
+            stats.top_skill_today = top_skill_today
+            stats.xp_gained_today = total_xp
+            stats.skill_xp_gained_today = skill_xp_gained_today
+            # Weekly
+            total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
+                player, skill_names, days=7
+            )
+            top_skill_week = (
+                skill_xp_gained_week[0][0] if skill_xp_gained_week else None
+            )
+            stats.top_skill_week = top_skill_week
+            stats.xp_gained_week = total_weekly_xp
+            stats.skill_xp_gained_week = skill_xp_gained_week
+            # Current
             all_players_data.append(stats)
 
     context = {"players": all_players_data}

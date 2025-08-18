@@ -34,7 +34,7 @@
                     </a>
                 </div>
 
-                <details class="collapsible-boss-stats" open>
+                <details class="collapsible-section collapsible-boss-stats">
                     <summary class="boss-grid-header">Bosses</summary>
                     <div class="boss-grid">
                         {% for boss_name, boss_data in player.bosses.items %}
@@ -47,6 +47,46 @@
                         {% endfor %}
                     </div>
                 </details>
+                
+                <details class="collapsible-section collapsible-xp-gained-today">
+                    <summary class="xp-grid-header">
+                        <span>XP Today</span>
+                        <span class="xp-amount" style="margin-left:auto;">
+                            {{ player.xp_gained_today|default:0|humanize_number }}
+                        </span>
+                        {% if player.top_skill_today %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_today|add:'.png' %}" alt="{{ player.top_skill_today }}">
+                        {% endif %}
+                    </summary>
+                    <div class="xp-grid">
+                        {% for skill, xp in player.skill_xp_gained_today %}
+                            <div class="xp-item">
+                                <span class="xp-skill">{{ skill|title }}</span>
+                                <span class="xp-amount">{{ xp|humanize_number }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </details>
+                
+                <details class="collapsible-section collapsible-xp-gained-week">
+                    <summary class="xp-grid-header">
+                        <span>XP Week</span>
+                        <span class="xp-amount" style="margin-left:auto;">
+                            {{ player.xp_gained_week|default:0|humanize_number }}
+                        </span>
+                        {% if player.top_skill_week %}
+                            <img class="skill-icon right-icon" src="{% static 'images/'|add:player.top_skill_week|add:'.png' %}" alt="{{ player.top_skill_week }}">
+                        {% endif %}
+                    </summary>
+                    <div class="xp-grid">
+                        {% for skill, xp in player.skill_xp_gained_week %}
+                            <div class="xp-item">
+                                <span class="xp-skill">{{ skill|title }}</span>
+                                <span class="xp-amount">{{ xp|humanize_number }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </details>          
 
             </section>
         {% endfor %}
@@ -54,4 +94,20 @@
         <p>No player data could be retrieved. Please check your internet connection or if players have been added to the database.</p>
     {% endif %}
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function syncCollapsibleDetails(className) {
+        document.querySelectorAll('.' + className).forEach(function(details) {
+            details.addEventListener('toggle', function(e) {
+                document.querySelectorAll('.' + className).forEach(function(d) {
+                    d.open = e.target.open;
+                });
+            });
+        });
+    }
+    syncCollapsibleDetails('collapsible-boss-stats');
+    syncCollapsibleDetails('collapsible-xp-gained-today');
+    syncCollapsibleDetails('collapsible-xp-gained-week');
+});
+</script>
 {% endblock %}

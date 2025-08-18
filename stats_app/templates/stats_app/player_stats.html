@@ -96,35 +96,6 @@
 </main>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Sync all boss dropdowns
-    document.querySelectorAll('.collapsible-boss-stats').forEach(function(details) {
-        details.addEventListener('toggle', function(e) {
-            if (e.target.open) {
-                document.querySelectorAll('.collapsible-boss-stats').forEach(function(d) { d.open = true; });
-            } else {
-                document.querySelectorAll('.collapsible-boss-stats').forEach(function(d) { d.open = false; });
-            }
-        });
-    });
-    // Sync all XP gained today dropdowns
-    document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(details) {
-        details.addEventListener('toggle', function(e) {
-            if (e.target.open) {
-                document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(d) { d.open = true; });
-            } else {
-                document.querySelectorAll('.collapsible-xp-gained-today').forEach(function(d) { d.open = false; });
-            }
-        });
-    });
-    // Sync all weekly XP gained dropdowns
-    document.querySelectorAll('.collapsible-xp-gained-week').forEach(function(details) {
-        details.addEventListener('toggle', function(e) {
-            if (e.target.open) {
-                document.querySelectorAll('.collapsible-xp-gained-week').forEach(function(d) { d.open = true; });
-            } else {
-                document.querySelectorAll('.collapsible-xp-gained-week').forEach(function(d) { d.open = false; });
-            }
-        });
     function syncCollapsibleDetails(className) {
         document.querySelectorAll('.' + className).forEach(function(details) {
             details.addEventListener('toggle', function(e) {

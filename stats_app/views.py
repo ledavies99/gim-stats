@@ -19,11 +19,15 @@ def get_xp_gained_period(player, skill_names, days=1):
     ).order_by("timestamp")
     skill_gains = {}
     if histories.exists():
-        first = histories.first().data["data"]
-        last = histories.last().data["data"]
+        first = getattr(histories.first(), "data", {}).get("data", {})
+        last = getattr(histories.last(), "data", {}).get("data", {})
         for skill in skill_names:
-            first_xp = first.get(skill.capitalize(), 0)
-            last_xp = last.get(skill.capitalize(), 0)
+            try:
+                first_xp = int(first.get(skill.capitalize(), 0) or 0)
+                last_xp = int(last.get(skill.capitalize(), 0) or 0)
+            except (ValueError, TypeError):
+                first_xp = 0
+                last_xp = 0
             skill_gains[skill] = last_xp - first_xp
         total = skill_gains.get("Overall", 0)
     else:
@@ -127,6 +131,20 @@ def skill_history_view(request, skill_name):
     return render(request, "stats_app/skill_history.html", context)
 
 
+def extract_y_value(record, value_key, level_key, ymode):
+    """
+    Returns the correct y-value (XP or level) from a PlayerHistory record.
+    """
+    data = getattr(record, "data", {}).get("data", {})
+    try:
+        if ymode == "level":
+            return int(data.get(level_key, 1) or 1)
+        else:
+            return int(data.get(value_key, 0) or 0)
+    except (ValueError, TypeError):
+        return 1 if ymode == "level" else 0
+
+
 def skill_history_data_api(request, skill_name):
     """
     API endpoint to fetch all skill history data for multiple players,
@@ -142,36 +160,32 @@ def skill_history_data_api(request, skill_name):
     datasets = []
 
     for player_name in player_names:
-        history_query = PlayerHistory.objects.filter(
-            group_member__player_name=player_name
-        ).order_by("timestamp")
+        try:
+            history_query = PlayerHistory.objects.filter(
+                group_member__player_name=player_name
+            ).order_by("timestamp")
+        except Exception:
+            continue
 
         if not history_query.exists():
             continue
 
         chart_data = []
         value_key = skill_name.capitalize()
-        level_key = f"{value_key}_level"  # e.g. "Attack_level"
+        level_key = f"{value_key}_level"
         prev_y = None
         run_start = None
 
         history_list = list(history_query)
         for i, record in enumerate(history_list):
-            if ymode == "level":
-                y_val = int(record.data.get("data", {}).get(level_key, 1) or 1)
-            else:
-                y_val = int(record.data.get("data", {}).get(value_key, 0) or 0)
+            y_val = extract_y_value(record, value_key, level_key, ymode)
+            # Only add a new point if the value changes (to reduce chart noise)
             if prev_y is None or y_val != prev_y:
+                # If this is not the first run, add the last point of the previous run
                 if run_start is not None and i > 0:
                     last_record = history_list[i - 1]
-                    if ymode == "level":
-                        last_y = int(
-                            last_record.data.get("data", {}).get(level_key, 1) or 1
-                        )
-                    else:
-                        last_y = int(
-                            last_record.data.get("data", {}).get(value_key, 0) or 0
-                        )
+                    last_y = extract_y_value(last_record, value_key, level_key, ymode)
+                    # Avoid duplicate timestamps
                     if last_record.timestamp != run_start.timestamp:
                         chart_data.append(
                             {
@@ -181,6 +195,7 @@ def skill_history_data_api(request, skill_name):
                                 "y": last_y,
                             }
                         )
+                # Add the new point where the value changes
                 chart_data.append(
                     {
                         "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -192,10 +207,7 @@ def skill_history_data_api(request, skill_name):
 
         if history_list:
             last_record = history_list[-1]
-            if ymode == "level":
-                last_y = int(last_record.data.get("data", {}).get(level_key, 1) or 1)
-            else:
-                last_y = int(last_record.data.get("data", {}).get(value_key, 0) or 0)
+            last_y = extract_y_value(last_record, value_key, level_key, ymode)
             if not chart_data or chart_data[-1]["x"] != last_record.timestamp.strftime(
                 "%Y-%m-%dT%H:%M:%S"
             ):

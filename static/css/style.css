@@ -152,6 +152,19 @@ main {
     visibility: visible;
 }
 
+.gold-border {
+    border: 3px solid #ffd700 !important;
+    box-shadow: 0 0 10px #ffd70088;
+}
+.silver-border {
+    border: 3px solid #c0c0c0 !important;
+    box-shadow: 0 0 10px #c0c0c088;
+}
+.bronze-border {
+    border: 3px solid #cd7f32 !important;
+    box-shadow: 0 0 10px #cd7f3288;
+}
+
 /* --- Collapsible Section Parent Style --- */
 .collapsible-section {
     margin-top: 10px;

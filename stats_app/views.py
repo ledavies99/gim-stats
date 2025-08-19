@@ -78,6 +78,11 @@ def player_stats_view(request):
             # Current
             all_players_data.append(stats)
 
+    # Sort by total XP descending
+    all_players_data.sort(key=lambda p: p.skills["overall"].xp, reverse=True)
+    for idx, player in enumerate(all_players_data):
+        player.rank = idx + 1  # 1-based rank
+
     context = {"players": all_players_data}
     return render(request, "stats_app/player_stats.html", context)
 

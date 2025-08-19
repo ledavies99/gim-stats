@@ -69,6 +69,27 @@ def order_players_for_podium(players):
     return [p for p in (left + ordered + right) if p is not None]
 
 
+def annotate_player_stats(player, skill_names):
+    stats = get_player_stats_from_cache(player.player_name)
+    if not stats:
+        return None
+    # Daily
+    total_xp, skill_xp_gained_today = get_xp_gained_period(player, skill_names, days=1)
+    stats.top_skill_today = (
+        skill_xp_gained_today[0][0] if skill_xp_gained_today else None
+    )
+    stats.xp_gained_today = total_xp
+    stats.skill_xp_gained_today = skill_xp_gained_today
+    # Weekly
+    total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
+        player, skill_names, days=7
+    )
+    stats.top_skill_week = skill_xp_gained_week[0][0] if skill_xp_gained_week else None
+    stats.xp_gained_week = total_weekly_xp
+    stats.skill_xp_gained_week = skill_xp_gained_week
+    return stats
+
+
 def player_stats_view(request):
     """
     View to display player stats directly from the cache.
@@ -77,31 +98,10 @@ def player_stats_view(request):
     all_players_data = []
 
     skill_names = load_config().get("skills", [])
-    for player in all_players:
-        stats = get_player_stats_from_cache(player.player_name)
-        if stats:
-            # Daily
-            total_xp, skill_xp_gained_today = get_xp_gained_period(
-                player, skill_names, days=1
-            )
-            top_skill_today = (
-                skill_xp_gained_today[0][0] if skill_xp_gained_today else None
-            )
-            stats.top_skill_today = top_skill_today
-            stats.xp_gained_today = total_xp
-            stats.skill_xp_gained_today = skill_xp_gained_today
-            # Weekly
-            total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
-                player, skill_names, days=7
-            )
-            top_skill_week = (
-                skill_xp_gained_week[0][0] if skill_xp_gained_week else None
-            )
-            stats.top_skill_week = top_skill_week
-            stats.xp_gained_week = total_weekly_xp
-            stats.skill_xp_gained_week = skill_xp_gained_week
-            # Current
-            all_players_data.append(stats)
+    all_players_data = [
+        annotate_player_stats(player, skill_names) for player in all_players
+    ]
+    all_players_data = [p for p in all_players_data if p]
 
     # Sort by weekly XP gained descending
     all_players_data.sort(key=lambda p: p.xp_gained_week, reverse=True)

@@ -44,6 +44,31 @@ def get_xp_gained_period(player, skill_names, days=1):
     return total, sorted_skill_gains
 
 
+def order_players_for_podium(players):
+    """
+    Returns a list of players ordered as:
+    [leftmost, ..., silver, gold, bronze, ..., rightmost]
+    with gold in the center, silver to the left, bronze to the right,
+    and the rest alternating left/right outward.
+    """
+    gold = next((p for p in players if p.rank == 1), None)
+    silver = next((p for p in players if p.rank == 2), None)
+    bronze = next((p for p in players if p.rank == 3), None)
+    others = [p for p in players if p.rank > 3]
+
+    ordered = [silver, gold, bronze]
+
+    left = []
+    right = []
+    for i, p in enumerate(others):
+        if i % 2 == 0:
+            left.insert(0, p)
+        else:
+            right.append(p)
+
+    return [p for p in (left + ordered + right) if p is not None]
+
+
 def player_stats_view(request):
     """
     View to display player stats directly from the cache.
@@ -83,7 +108,9 @@ def player_stats_view(request):
     for idx, player in enumerate(all_players_data):
         player.rank = idx + 1  # 1-based rank
 
-    context = {"players": all_players_data}
+    players_ordered = order_players_for_podium(all_players_data)
+    context = {"players": players_ordered}
+
     return render(request, "stats_app/player_stats.html", context)
 
 

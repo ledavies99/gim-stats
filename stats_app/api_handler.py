@@ -1,5 +1,6 @@
 # stats_app/api_handler.py
 
+
 import requests
 import json
 import os
@@ -8,26 +9,27 @@ from urllib.parse import quote
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
+from dataclasses import dataclass
 
 
+@dataclass
 class Skill:
-    def __init__(self, rank: int, level: int, xp: int):
-        self.rank = rank
-        self.level = level
-        self.xp = xp
+    rank: int
+    level: int
+    xp: int
 
 
+@dataclass
 class Boss:
-    def __init__(self, killcount: int):
-        self.killcount = killcount
+    killcount: int
 
 
+@dataclass
 class PlayerStats:
-    def __init__(self, player_name: str, timestamp: str, skills: dict, bosses: dict):
-        self.player_name = player_name
-        self.timestamp = timestamp
-        self.skills = skills
-        self.bosses = bosses
+    player_name: str
+    timestamp: str
+    skills: dict
+    bosses: dict
 
 
 def refresh_player_cache(player_name):

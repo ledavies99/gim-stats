@@ -7,6 +7,18 @@ from .api_handler import get_player_stats_from_cache, load_config
 from datetime import datetime, timedelta
 
 
+def get_keys():
+    config = load_config()
+    keys = config.get("keys", {})
+    return (
+        keys.get("data", "data"),
+        keys.get("info", "info"),
+        keys.get("overall", "Overall"),
+        keys.get("overall_rank", "Overall_rank"),
+        keys.get("overall_level", "Overall_level"),
+    )
+
+
 def get_xp_gained_period(player, skill_names, days=1):
     """
     Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)
@@ -18,9 +30,10 @@ def get_xp_gained_period(player, skill_names, days=1):
         group_member=player, timestamp__date__gte=start_date, timestamp__date__lte=today
     ).order_by("timestamp")
     skill_gains = {}
+    DATA_KEY, _, OVERALL_KEY, _, _ = get_keys()
     if histories.exists():
-        first = getattr(histories.first(), "data", {}).get("data", {})
-        last = getattr(histories.last(), "data", {}).get("data", {})
+        first = getattr(histories.first(), "data", {}).get(DATA_KEY, {})
+        last = getattr(histories.last(), "data", {}).get(DATA_KEY, {})
         for skill in skill_names:
             try:
                 first_xp = int(first.get(skill.capitalize(), 0) or 0)
@@ -29,7 +42,7 @@ def get_xp_gained_period(player, skill_names, days=1):
                 first_xp = 0
                 last_xp = 0
             skill_gains[skill] = last_xp - first_xp
-        total = skill_gains.get("Overall", 0)
+        total = skill_gains.get(OVERALL_KEY, 0)
     else:
         for skill in skill_names:
             skill_gains[skill] = 0
@@ -135,7 +148,8 @@ def extract_y_value(record, value_key, level_key, ymode):
     """
     Returns the correct y-value (XP or level) from a PlayerHistory record.
     """
-    data = getattr(record, "data", {}).get("data", {})
+    DATA_KEY, _, _, _, _ = get_keys()
+    data = getattr(record, "data", {}).get(DATA_KEY, {})
     try:
         if ymode == "level":
             return int(data.get(level_key, 1) or 1)

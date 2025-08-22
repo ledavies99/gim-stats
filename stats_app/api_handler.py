@@ -9,7 +9,20 @@ from urllib.parse import quote
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
+
 from dataclasses import dataclass
+
+
+def get_keys():
+    config = load_config()
+    keys = config.get("keys", {})
+    return (
+        keys.get("data", "data"),
+        keys.get("info", "info"),
+        keys.get("overall", "Overall"),
+        keys.get("overall_rank", "Overall_rank"),
+        keys.get("overall_level", "Overall_level"),
+    )
 
 
 @dataclass
@@ -44,6 +57,7 @@ def refresh_player_cache(player_name):
         return False
 
     config = load_config()
+    DATA_KEY, INFO_KEY, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
 
     if update_player_on_temple(player_name, max_requests):
@@ -53,14 +67,16 @@ def refresh_player_cache(player_name):
             skill_names = config.get("skills", [])
 
             try:
-                last_history = PlayerHistory.objects.filter(group_member=member).latest(
-                    "timestamp"
+                last_history = (
+                    PlayerHistory.objects.filter(group_member=member)
+                    .only("data")
+                    .latest("timestamp")
                 )
                 previous_data = last_history.data.get("data", {})
             except PlayerHistory.DoesNotExist:
                 previous_data = {}
 
-            api_data = api_response.get("data", {})
+            api_data = api_response.get(DATA_KEY, {})
             for skill in skill_names:
                 # XP carry-forward
                 xp = carry_forward(api_data.get(skill), previous_data.get(skill, 0))
@@ -73,10 +89,10 @@ def refresh_player_cache(player_name):
                 )
                 api_data[level_key] = level
 
-            api_response["data"] = api_data
+            api_response[DATA_KEY] = api_data
 
             cache, created = PlayerStatsCache.objects.get_or_create(
-                group_member=member, defaults={"data": api_response}
+                group_member=member, defaults={DATA_KEY: api_response}
             )
             if not created:
                 cache.data = api_response
@@ -96,6 +112,7 @@ def get_player_stats_from_cache(player_name):
     """
     Handles the "fast" part: reads and parses data directly from the cache.
     """
+
     try:
         member = GroupMember.objects.get(player_name=player_name)
         cache = PlayerStatsCache.objects.get(group_member=member)
@@ -103,12 +120,13 @@ def get_player_stats_from_cache(player_name):
     except (GroupMember.DoesNotExist, PlayerStatsCache.DoesNotExist):
         return None
 
-    if not api_response or "data" not in api_response:
+    DATA_KEY, INFO_KEY, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
+    if not api_response or DATA_KEY not in api_response:
         return None
 
     config = load_config()
-    player_info = api_response.get("data", {}).get("info", {})
-    player_data = api_response.get("data", {})
+    player_info = api_response.get(DATA_KEY, {}).get(INFO_KEY, {})
+    player_data = api_response.get(DATA_KEY, {})
 
     if not player_info or not player_data:
         return None
@@ -135,9 +153,10 @@ def parse_skills(player_data, config):
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
-    overall_skill_data = player_data.get("Overall", 0)
-    overall_rank = player_data.get("Overall_rank", 0)
-    overall_level = player_data.get("Overall_level", 0)
+    _, _, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
+    overall_skill_data = player_data.get(OVERALL_KEY, 0)
+    overall_rank = player_data.get(OVERALL_RANK_KEY, 0)
+    overall_level = player_data.get(OVERALL_LEVEL_KEY, 0)
     parsed_skills["overall"] = Skill(
         rank=overall_rank, level=overall_level, xp=overall_skill_data
     )

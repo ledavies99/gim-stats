@@ -94,15 +94,21 @@ def refresh_player_cache(player_name):
     return False  # Rate limit was likely hit
 
 
-def get_player_stats_from_cache(player_name):
+def get_player_stats_from_cache(player_name, cache=None):
     """
     Handles the "fast" part: reads and parses data directly from the cache.
+    Accepts a cache object to avoid extra queries.
     """
+    from .models import GroupMember, PlayerStatsCache
 
     try:
-        member = GroupMember.objects.get(player_name=player_name)
-        cache = PlayerStatsCache.objects.get(group_member=member)
-        api_response = cache.data
+        if cache is not None:
+            member = cache.group_member
+            api_response = cache.data
+        else:
+            member = GroupMember.objects.get(player_name=player_name)
+            cache = PlayerStatsCache.objects.get(group_member=member)
+            api_response = cache.data
     except (GroupMember.DoesNotExist, PlayerStatsCache.DoesNotExist):
         return None
 

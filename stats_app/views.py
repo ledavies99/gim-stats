@@ -6,6 +6,8 @@ from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
 from .utils import get_keys
 from datetime import datetime, timedelta
+
+
 def get_xp_gained_period(player, skill_names, days=1):
     """
     Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)
@@ -73,8 +75,8 @@ def order_players_for_podium(players):
     return [p for p in (left + ordered + right) if p is not None]
 
 
-def annotate_player_stats(player, skill_names):
-    stats = get_player_stats_from_cache(player.player_name)
+def annotate_player_stats(player, skill_names, cache=None):
+    stats = get_player_stats_from_cache(player.player_name, cache=cache)
     if not stats:
         return None
     # Daily
@@ -96,14 +98,19 @@ def annotate_player_stats(player, skill_names):
 
 def player_stats_view(request):
     """
-    View to display player stats directly from the cache.
+    View to display player stats directly from the cache, optimized to avoid N+1 queries.
     """
-    all_players = GroupMember.objects.all().order_by("player_name")
-    all_players_data = []
+    from .models import PlayerStatsCache
 
     skill_names = load_config().get("skills", [])
+    # Prefetch PlayerStatsCache for all players
+    all_players = list(GroupMember.objects.all().order_by("player_name"))
+    caches = PlayerStatsCache.objects.select_related("group_member").in_bulk(
+        [p.id for p in all_players], field_name="group_member_id"
+    )
     all_players_data = [
-        annotate_player_stats(player, skill_names) for player in all_players
+        annotate_player_stats(player, skill_names, cache=caches.get(player.id))
+        for player in all_players
     ]
     all_players_data = [p for p in all_players_data if p]
 

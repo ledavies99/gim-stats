@@ -4,21 +4,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
+from .utils import get_keys
 from datetime import datetime, timedelta
-
-
-def get_keys():
-    config = load_config()
-    keys = config.get("keys", {})
-    return (
-        keys.get("data", "data"),
-        keys.get("info", "info"),
-        keys.get("overall", "Overall"),
-        keys.get("overall_rank", "Overall_rank"),
-        keys.get("overall_level", "Overall_level"),
-    )
-
-
 def get_xp_gained_period(player, skill_names, days=1):
     """
     Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)

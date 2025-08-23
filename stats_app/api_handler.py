@@ -2,27 +2,13 @@
 
 
 import requests
-import json
-import os
 from datetime import timedelta
 from urllib.parse import quote
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
-
 from dataclasses import dataclass
-
-
-def get_keys():
-    config = load_config()
-    keys = config.get("keys", {})
-    return (
-        keys.get("data", "data"),
-        keys.get("info", "info"),
-        keys.get("overall", "Overall"),
-        keys.get("overall_rank", "Overall_rank"),
-        keys.get("overall_level", "Overall_level"),
-    )
+from .utils import get_keys, load_config, carry_forward
 
 
 @dataclass
@@ -210,23 +196,3 @@ def fetch_player_stats_from_api(player_name):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return response.json()
-
-
-def carry_forward(new_value, prev_value):
-    """Carry forward the value if it's None or less than the previous value."""
-    if new_value is None:
-        return prev_value
-    if new_value < prev_value:
-        return prev_value
-    return new_value
-
-
-def load_config():
-    """Loads the configuration from a JSON file."""
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_dir, "config.json")
-        with open(config_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}

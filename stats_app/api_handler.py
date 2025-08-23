@@ -1,33 +1,34 @@
 # stats_app/api_handler.py
 
+
 import requests
-import json
-import os
 from datetime import timedelta
 from urllib.parse import quote
 from django.utils import timezone
 from .models import GroupMember, PlayerStatsCache, APICallLog, PlayerHistory
 from requests.exceptions import RequestException
+from dataclasses import dataclass
+from .utils import get_keys, load_config, carry_forward
 
 
+@dataclass
 class Skill:
-    def __init__(self, rank: int, level: int, xp: int):
-        self.rank = rank
-        self.level = level
-        self.xp = xp
+    rank: int
+    level: int
+    xp: int
 
 
+@dataclass
 class Boss:
-    def __init__(self, killcount: int):
-        self.killcount = killcount
+    killcount: int
 
 
+@dataclass
 class PlayerStats:
-    def __init__(self, player_name: str, timestamp: str, skills: dict, bosses: dict):
-        self.player_name = player_name
-        self.timestamp = timestamp
-        self.skills = skills
-        self.bosses = bosses
+    player_name: str
+    timestamp: str
+    skills: dict
+    bosses: dict
 
 
 def refresh_player_cache(player_name):
@@ -42,6 +43,7 @@ def refresh_player_cache(player_name):
         return False
 
     config = load_config()
+    DATA_KEY, INFO_KEY, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
     max_requests = config.get("api_rate_limit", {}).get("max_requests_per_minute", 5)
 
     if update_player_on_temple(player_name, max_requests):
@@ -51,14 +53,16 @@ def refresh_player_cache(player_name):
             skill_names = config.get("skills", [])
 
             try:
-                last_history = PlayerHistory.objects.filter(group_member=member).latest(
-                    "timestamp"
+                last_history = (
+                    PlayerHistory.objects.filter(group_member=member)
+                    .only("data")
+                    .latest("timestamp")
                 )
                 previous_data = last_history.data.get("data", {})
             except PlayerHistory.DoesNotExist:
                 previous_data = {}
 
-            api_data = api_response.get("data", {})
+            api_data = api_response.get(DATA_KEY, {})
             for skill in skill_names:
                 # XP carry-forward
                 xp = carry_forward(api_data.get(skill), previous_data.get(skill, 0))
@@ -71,10 +75,10 @@ def refresh_player_cache(player_name):
                 )
                 api_data[level_key] = level
 
-            api_response["data"] = api_data
+            api_response[DATA_KEY] = api_data
 
             cache, created = PlayerStatsCache.objects.get_or_create(
-                group_member=member, defaults={"data": api_response}
+                group_member=member, defaults={DATA_KEY: api_response}
             )
             if not created:
                 cache.data = api_response
@@ -94,6 +98,7 @@ def get_player_stats_from_cache(player_name):
     """
     Handles the "fast" part: reads and parses data directly from the cache.
     """
+
     try:
         member = GroupMember.objects.get(player_name=player_name)
         cache = PlayerStatsCache.objects.get(group_member=member)
@@ -101,12 +106,13 @@ def get_player_stats_from_cache(player_name):
     except (GroupMember.DoesNotExist, PlayerStatsCache.DoesNotExist):
         return None
 
-    if not api_response or "data" not in api_response:
+    DATA_KEY, INFO_KEY, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
+    if not api_response or DATA_KEY not in api_response:
         return None
 
     config = load_config()
-    player_info = api_response.get("data", {}).get("info", {})
-    player_data = api_response.get("data", {})
+    player_info = api_response.get(DATA_KEY, {}).get(INFO_KEY, {})
+    player_data = api_response.get(DATA_KEY, {})
 
     if not player_info or not player_data:
         return None
@@ -133,9 +139,10 @@ def parse_skills(player_data, config):
         xp = player_data.get(skill_name, 0)
         parsed_skills[skill_key] = Skill(rank=rank, level=level, xp=xp)
 
-    overall_skill_data = player_data.get("Overall", 0)
-    overall_rank = player_data.get("Overall_rank", 0)
-    overall_level = player_data.get("Overall_level", 0)
+    _, _, OVERALL_KEY, OVERALL_RANK_KEY, OVERALL_LEVEL_KEY = get_keys()
+    overall_skill_data = player_data.get(OVERALL_KEY, 0)
+    overall_rank = player_data.get(OVERALL_RANK_KEY, 0)
+    overall_level = player_data.get(OVERALL_LEVEL_KEY, 0)
     parsed_skills["overall"] = Skill(
         rank=overall_rank, level=overall_level, xp=overall_skill_data
     )
@@ -189,23 +196,3 @@ def fetch_player_stats_from_api(player_name):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return response.json()
-
-
-def carry_forward(new_value, prev_value):
-    """Carry forward the value if it's None or less than the previous value."""
-    if new_value is None:
-        return prev_value
-    if new_value < prev_value:
-        return prev_value
-    return new_value
-
-
-def load_config():
-    """Loads the configuration from a JSON file."""
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_dir, "config.json")
-        with open(config_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}

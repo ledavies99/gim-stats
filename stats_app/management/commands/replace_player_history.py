@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from stats_app.models import GroupMember, PlayerHistory
-from stats_app.api_handler import load_config, carry_forward
+from stats_app.utils import load_config, carry_forward
 import requests
 from datetime import datetime, timezone
 

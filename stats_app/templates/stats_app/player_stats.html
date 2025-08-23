@@ -8,7 +8,8 @@
 <main>
     {% if players %}
         {% for player in players %}
-            <section class="player-card">
+            <section class="player-card
+                {% if player.rank == 1 %}gold-border{% elif player.rank == 2 %}silver-border{% elif player.rank == 3 %}bronze-border{% endif %}">
                 <h2>{{ player.player_name }}</h2>
                 <p>Last updated: {{ player.timestamp }}</p>
 

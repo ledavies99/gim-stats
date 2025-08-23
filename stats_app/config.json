@@ -103,5 +103,12 @@
         "The Royal Titans",
         "Yama",
         "Doom of Mokhaiotl"
-    ]
+    ],
+    "keys": {
+        "data": "data",
+        "info": "info",
+        "overall": "Overall",
+        "overall_rank": "Overall_rank",
+        "overall_level": "Overall_level"
+    }
 }

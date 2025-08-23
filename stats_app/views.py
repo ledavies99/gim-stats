@@ -4,9 +4,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
+from .utils import get_keys
 from datetime import datetime, timedelta
-
-
 def get_xp_gained_period(player, skill_names, days=1):
     """
     Returns a tuple: (total_xp_gained, sorted_skill_xp_gained)
@@ -18,14 +17,19 @@ def get_xp_gained_period(player, skill_names, days=1):
         group_member=player, timestamp__date__gte=start_date, timestamp__date__lte=today
     ).order_by("timestamp")
     skill_gains = {}
+    DATA_KEY, _, OVERALL_KEY, _, _ = get_keys()
     if histories.exists():
-        first = histories.first().data["data"]
-        last = histories.last().data["data"]
+        first = getattr(histories.first(), "data", {}).get(DATA_KEY, {})
+        last = getattr(histories.last(), "data", {}).get(DATA_KEY, {})
         for skill in skill_names:
-            first_xp = first.get(skill.capitalize(), 0)
-            last_xp = last.get(skill.capitalize(), 0)
+            try:
+                first_xp = int(first.get(skill.capitalize(), 0) or 0)
+                last_xp = int(last.get(skill.capitalize(), 0) or 0)
+            except (ValueError, TypeError):
+                first_xp = 0
+                last_xp = 0
             skill_gains[skill] = last_xp - first_xp
-        total = skill_gains.get("Overall", 0)
+        total = skill_gains.get(OVERALL_KEY, 0)
     else:
         for skill in skill_names:
             skill_gains[skill] = 0
@@ -44,6 +48,52 @@ def get_xp_gained_period(player, skill_names, days=1):
     return total, sorted_skill_gains
 
 
+def order_players_for_podium(players):
+    """
+    Returns a list of players ordered as:
+    [leftmost, ..., silver, gold, bronze, ..., rightmost]
+    with gold in the center, silver to the left, bronze to the right,
+    and the rest alternating left/right outward.
+    """
+    gold = next((p for p in players if p.rank == 1), None)
+    silver = next((p for p in players if p.rank == 2), None)
+    bronze = next((p for p in players if p.rank == 3), None)
+    others = [p for p in players if p.rank > 3]
+
+    ordered = [silver, gold, bronze]
+
+    left = []
+    right = []
+    for i, p in enumerate(others):
+        if i % 2 == 0:
+            left.insert(0, p)
+        else:
+            right.append(p)
+
+    return [p for p in (left + ordered + right) if p is not None]
+
+
+def annotate_player_stats(player, skill_names):
+    stats = get_player_stats_from_cache(player.player_name)
+    if not stats:
+        return None
+    # Daily
+    total_xp, skill_xp_gained_today = get_xp_gained_period(player, skill_names, days=1)
+    stats.top_skill_today = (
+        skill_xp_gained_today[0][0] if skill_xp_gained_today else None
+    )
+    stats.xp_gained_today = total_xp
+    stats.skill_xp_gained_today = skill_xp_gained_today
+    # Weekly
+    total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
+        player, skill_names, days=7
+    )
+    stats.top_skill_week = skill_xp_gained_week[0][0] if skill_xp_gained_week else None
+    stats.xp_gained_week = total_weekly_xp
+    stats.skill_xp_gained_week = skill_xp_gained_week
+    return stats
+
+
 def player_stats_view(request):
     """
     View to display player stats directly from the cache.
@@ -52,33 +102,19 @@ def player_stats_view(request):
     all_players_data = []
 
     skill_names = load_config().get("skills", [])
-    for player in all_players:
-        stats = get_player_stats_from_cache(player.player_name)
-        if stats:
-            # Daily
-            total_xp, skill_xp_gained_today = get_xp_gained_period(
-                player, skill_names, days=1
-            )
-            top_skill_today = (
-                skill_xp_gained_today[0][0] if skill_xp_gained_today else None
-            )
-            stats.top_skill_today = top_skill_today
-            stats.xp_gained_today = total_xp
-            stats.skill_xp_gained_today = skill_xp_gained_today
-            # Weekly
-            total_weekly_xp, skill_xp_gained_week = get_xp_gained_period(
-                player, skill_names, days=7
-            )
-            top_skill_week = (
-                skill_xp_gained_week[0][0] if skill_xp_gained_week else None
-            )
-            stats.top_skill_week = top_skill_week
-            stats.xp_gained_week = total_weekly_xp
-            stats.skill_xp_gained_week = skill_xp_gained_week
-            # Current
-            all_players_data.append(stats)
+    all_players_data = [
+        annotate_player_stats(player, skill_names) for player in all_players
+    ]
+    all_players_data = [p for p in all_players_data if p]
 
-    context = {"players": all_players_data}
+    # Sort by weekly XP gained descending
+    all_players_data.sort(key=lambda p: p.xp_gained_week, reverse=True)
+    for idx, player in enumerate(all_players_data):
+        player.rank = idx + 1  # 1-based rank
+
+    players_ordered = order_players_for_podium(all_players_data)
+    context = {"players": players_ordered}
+
     return render(request, "stats_app/player_stats.html", context)
 
 
@@ -93,6 +129,21 @@ def skill_history_view(request, skill_name):
         "selected_player_name": selected_player_name,
     }
     return render(request, "stats_app/skill_history.html", context)
+
+
+def extract_y_value(record, value_key, level_key, ymode):
+    """
+    Returns the correct y-value (XP or level) from a PlayerHistory record.
+    """
+    DATA_KEY, _, _, _, _ = get_keys()
+    data = getattr(record, "data", {}).get(DATA_KEY, {})
+    try:
+        if ymode == "level":
+            return int(data.get(level_key, 1) or 1)
+        else:
+            return int(data.get(value_key, 0) or 0)
+    except (ValueError, TypeError):
+        return 1 if ymode == "level" else 0
 
 
 def skill_history_data_api(request, skill_name):
@@ -110,36 +161,32 @@ def skill_history_data_api(request, skill_name):
     datasets = []
 
     for player_name in player_names:
-        history_query = PlayerHistory.objects.filter(
-            group_member__player_name=player_name
-        ).order_by("timestamp")
+        try:
+            history_query = PlayerHistory.objects.filter(
+                group_member__player_name=player_name
+            ).order_by("timestamp")
+        except Exception:
+            continue
 
         if not history_query.exists():
             continue
 
         chart_data = []
         value_key = skill_name.capitalize()
-        level_key = f"{value_key}_level"  # e.g. "Attack_level"
+        level_key = f"{value_key}_level"
         prev_y = None
         run_start = None
 
         history_list = list(history_query)
         for i, record in enumerate(history_list):
-            if ymode == "level":
-                y_val = int(record.data.get("data", {}).get(level_key, 1) or 1)
-            else:
-                y_val = int(record.data.get("data", {}).get(value_key, 0) or 0)
+            y_val = extract_y_value(record, value_key, level_key, ymode)
+            # Only add a new point if the value changes (to reduce chart noise)
             if prev_y is None or y_val != prev_y:
+                # If this is not the first run, add the last point of the previous run
                 if run_start is not None and i > 0:
                     last_record = history_list[i - 1]
-                    if ymode == "level":
-                        last_y = int(
-                            last_record.data.get("data", {}).get(level_key, 1) or 1
-                        )
-                    else:
-                        last_y = int(
-                            last_record.data.get("data", {}).get(value_key, 0) or 0
-                        )
+                    last_y = extract_y_value(last_record, value_key, level_key, ymode)
+                    # Avoid duplicate timestamps
                     if last_record.timestamp != run_start.timestamp:
                         chart_data.append(
                             {
@@ -149,6 +196,7 @@ def skill_history_data_api(request, skill_name):
                                 "y": last_y,
                             }
                         )
+                # Add the new point where the value changes
                 chart_data.append(
                     {
                         "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -160,10 +208,7 @@ def skill_history_data_api(request, skill_name):
 
         if history_list:
             last_record = history_list[-1]
-            if ymode == "level":
-                last_y = int(last_record.data.get("data", {}).get(level_key, 1) or 1)
-            else:
-                last_y = int(last_record.data.get("data", {}).get(value_key, 0) or 0)
+            last_y = extract_y_value(last_record, value_key, level_key, ymode)
             if not chart_data or chart_data[-1]["x"] != last_record.timestamp.strftime(
                 "%Y-%m-%dT%H:%M:%S"
             ):

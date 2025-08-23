@@ -83,6 +83,15 @@
         }
     }
 
+    function humanizeNumber(value) {
+        value = Number(value);
+        if (value >= 1_000_000_000_000) return (value / 1_000_000_000_000).toFixed(1) + 'T';
+        if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + 'B';
+        if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
+        if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+        return value;
+    }
+
     // --- Main Function ---
     async function fetchAndRenderChart() {
         updateChartTitle();
@@ -129,7 +138,7 @@
             // Y-axis label
             const yAxisTitle = yMode === 'level'
                 ? 'Level'
-                : (skillName === 'overall' ? 'Level' : 'XP');
+                : 'XP';
 
             historyChart = new Chart(chartCanvas.getContext('2d'), {
                 type: 'line',
@@ -145,7 +154,10 @@
                             ticks: {
                                 color: '#e0e0e0',
                                 callback: function(value) {
-                                    // Only show integer ticks
+                                    if (yMode === 'xp') {
+                                        return humanizeNumber(value);
+                                    }
+                                    // Only show integer ticks for level
                                     return Number.isInteger(value) ? value : null;
                                 }
                             },

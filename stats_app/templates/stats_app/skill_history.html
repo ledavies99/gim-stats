@@ -41,6 +41,14 @@
                         <button type="button" class="btn btn-sm btn-outline-primary point-style-btn active" data-mode="hide">Hide Points</button>
                     </div>
                 </div>
+                <!-- Time Range Selection -->
+                <div id="time-range-selection">
+                    <div class="btn-group" role="group" aria-label="Time Range">
+                        <button type="button" class="btn btn-sm btn-outline-primary time-range-btn" data-range="day">Day</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary time-range-btn" data-range="week">Week</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary time-range-btn active" data-range="all">All</button>
+                    </div>
+                </div>
             </div>
 
             <h2 id="chart-title"></h2>
@@ -58,7 +66,7 @@
 
 <script>
     // --- Elements ---
-    let chartTitleEl, chartCanvas, playerCheckboxes, yModeBtns, pointStyleBtns;
+    let chartTitleEl, chartCanvas, playerCheckboxes, yModeBtns, pointStyleBtns, timeRangeBtns;
 
     // --- Chart State ---
     const skillName = '{{ skill_name }}';
@@ -66,6 +74,7 @@
     let yMode = 'level'; // Default to 'level'
     let pointStyle = 'hide'; // Default to 'hide'
     const chartColors = ['#ffd700', '#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f1c40f'];
+    let timeRange = 'all'; // Default to all data
 
     // --- Dynamic Titles ---
     const formattedSkillName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
@@ -93,6 +102,27 @@
     }
 
     // --- Main Function ---
+    // Helper to filter data by time range
+    function filterDataByRange(datasets, range) {
+        if (range === 'all') return datasets;
+        const now = new Date();
+        let cutoff;
+        if (range === 'day') {
+            cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        } else if (range === 'week') {
+            cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        }
+        // Filter each dataset's data array
+        return datasets.map(ds => ({
+            ...ds,
+            data: ds.data.filter(point => {
+                // point.x is date string or timestamp
+                const date = new Date(point.x || point.t || point[0]);
+                return date >= cutoff;
+            })
+        }));
+    }
+
     async function fetchAndRenderChart() {
         updateChartTitle();
 
@@ -118,8 +148,9 @@
             }
 
             // Map data to XP or Level
+
             const pointRadius = pointStyle === 'show' ? 3 : 0;
-            const datasets = data.datasets.map((dataset, index) => ({
+            let datasets = data.datasets.map((dataset, index) => ({
                 label: dataset.label,
                 data: dataset.data,
                 borderColor: chartColors[index % chartColors.length],
@@ -128,6 +159,9 @@
                 pointRadius: pointRadius,
                 pointHoverRadius: pointRadius ? 6 : 0,
             }));
+
+            // Filter by time range
+            datasets = filterDataByRange(datasets, timeRange);
 
             if (historyChart) historyChart.destroy();
 
@@ -197,6 +231,15 @@
 
     // --- Event Listeners ---
     function setupChartEventListeners() {
+        // Time range buttons
+        timeRangeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                timeRangeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                timeRange = btn.dataset.range;
+                fetchAndRenderChart();
+            });
+        });
         const allCheckbox = document.getElementById('player_all');
 
         // "All" checkbox logic
@@ -241,13 +284,17 @@
         playerCheckboxes = document.querySelectorAll('.player-checkbox');
         yModeBtns = document.querySelectorAll('.y-mode-btn');
         pointStyleBtns = document.querySelectorAll('.point-style-btn');
+        timeRangeBtns = document.querySelectorAll('.time-range-btn');
 
-        // Set default active buttons for Level and Hide Points
+        // Set default active buttons for Level, Hide Points, and All time range
         yModeBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === 'level');
         });
         pointStyleBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === 'hide');
+        });
+        timeRangeBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.range === 'all');
         });
 
         updateChartTitle();

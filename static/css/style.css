@@ -46,6 +46,15 @@ main {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    /* Enhanced shadow for modern look */
+    box-shadow: 0 4px 16px 0 rgba(0,0,0,0.25), 0 1.5px 6px 0 rgba(255,215,0,0.08);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.player-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.32), 0 3px 12px 0 rgba(255,215,0,0.14);
+    transform: translateY(-4px) scale(1.015);
+    z-index: 2;
 }
 
 .skill-grid {
@@ -78,6 +87,13 @@ main {
 .skill-icon {
     width: 30px;
     height: 30px;
+    transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), filter 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+.skill-item:hover .skill-icon,
+.overall-stats-text:hover .skill-icon {
+    transform: scale(1.18) rotate(-6deg);
+    filter: drop-shadow(0 2px 6px #ffd70088);
 }
 
 /* Skill level */
@@ -311,8 +327,9 @@ main {
     padding: 20px;
     box-sizing: border-box;
     width: 100%;
-    max-width: 1000px; /* Adjust this value as needed */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    max-width: 1000px;
+    box-shadow: 0 6px 24px 0 rgba(0,0,0,0.28), 0 2px 8px 0 rgba(255,215,0,0.10);
+    transition: box-shadow 0.2s;
 }
 
 .chart-container {

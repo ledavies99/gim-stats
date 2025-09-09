@@ -18,6 +18,7 @@ function PlayerStats() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState("overall"); // NEW: default to overall
 
   useEffect(() => {
     fetch("/api/player_stats/")
@@ -28,15 +29,15 @@ function PlayerStats() {
       });
   }, []);
 
-  // Fetch total XP history for all players
+  // Fetch XP history for selected skill for all players
   useEffect(() => {
-    if (players.length > 0) {
+    if (players.length > 0 && selectedSkill) {
       const playerNames = players.map((p) => p.player_name).join(",");
-      fetch(`/api/history_data/overall/?players=${playerNames}`)
+      fetch(`/api/history_data/${selectedSkill}/?players=${playerNames}`)
         .then((res) => res.json())
         .then((data) => setHistoryData(data));
     }
-  }, [players]);
+  }, [players, selectedSkill]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -83,30 +84,33 @@ function PlayerStats() {
             <div className="skill-grid">
               {Object.entries(player.skills).map(([skill_name, skill_data]) =>
                 skill_name !== "overall" ? (
-                  <a
+                  <div
                     key={skill_name}
-                    href={`/history/${skill_name}/?player=${player.player_name}`}
+                    className="skill-item"
+                    data-xp={humanizeNumber(skill_data.xp)}
+                    onClick={() => setSelectedSkill(skill_name)} // NEW: set selected skill
+                    style={{ cursor: "pointer" }}
                   >
-                    <div className="skill-item" data-xp={humanizeNumber(skill_data.xp)}>
-                      <img
-                        className="skill-icon"
-                        src={skillIcon(skill_name)}
-                        alt={skill_name}
-                      />
-                      <span className="skill-level">{skill_data.level}</span>
-                    </div>
-                  </a>
+                    <img
+                      className="skill-icon"
+                      src={skillIcon(skill_name)}
+                      alt={skill_name}
+                    />
+                    <span className="skill-level">{skill_data.level}</span>
+                  </div>
                 ) : null
               )}
 
-              <a href={`/history/overall/?player=${player.player_name}`}>
-                <div className="overall-stats">
-                  <div className="overall-stats-text" data-xp={humanizeNumber(player.skills.overall.xp)}>
-                    <span className="overall-label">Total level:</span>
-                    <span className="overall-value">{player.skills.overall.level}</span>
-                  </div>
+              <div
+                className="overall-stats"
+                onClick={() => setSelectedSkill("overall")}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="overall-stats-text" data-xp={humanizeNumber(player.skills.overall.xp)}>
+                  <span className="overall-label">Total level:</span>
+                  <span className="overall-value">{player.skills.overall.level}</span>
                 </div>
-              </a>
+              </div>
             </div>
 
             {/* Bosses Collapsible */}
@@ -177,11 +181,11 @@ function PlayerStats() {
           </section>
         ))}
       </main>
-      {/* Centered graph for all players' total XP */}
+      {/* Centered graph for all players' selected skill XP */}
       {historyData && historyData.datasets && historyData.datasets.length > 0 && (
         <div className="history-container">
           <div className="chart-card" style={{ background: '#3f3e3a', border: '1px solid #7c7365', borderRadius: '8px', padding: '20px', boxSizing: 'border-box', width: '100%', maxWidth: '1000px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)' }}>
-            <h1 style={{ color: '#ffd700', fontSize: '2.8rem', margin: '0 0 10px 0', fontWeight: 'bold' }}>Total XP Over Time</h1>
+            <h1 style={{ color: '#ffd700', fontSize: '2.8rem', margin: '0 0 10px 0', fontWeight: 'bold' }}>{selectedSkill.charAt(0).toUpperCase() + selectedSkill.slice(1)} XP Over Time</h1>
             <div className="chart-container">
               {(() => {
                 // Build a sorted union of all x-values (dates)

@@ -43,6 +43,11 @@
     transform: rotate(-10deg) scale(1.1);
     transition: filter 0.2s, transform 0.2s;
 }
+.skill-item:hover .skill-icon {
+    filter: brightness(1.2) drop-shadow(0 0 4px #ffd70088);
+    transform: rotate(-10deg) scale(1.1);
+    transition: filter 0.2s, transform 0.2s;
+}
 /* Global Styles */
 body {
     font-family: Arial, sans-serif;
@@ -217,13 +222,25 @@ main {
     background-color: #3f3e3a;
     border-radius: 5px;
     user-select: none;
+    transition: background 0.2s;
+}
+
+.collapsible-section summary:hover {
+    background-color: #5a5752;
 }
 
 .collapsible-section summary::before {
     content: '▶';
     font-size: 0.8em;
     color: #ffd700;
-    transition: transform 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out, color 0.2s, filter 0.2s, text-shadow 0.2s;
+}
+
+.collapsible-section summary:hover::before {
+    color: #fff700;
+    transform: scale(1.1);
+    filter: brightness(1.2);
+    text-shadow: 0 0 8px #ffd70088;
 }
 
 .collapsible-section[open] summary::before {
@@ -328,22 +345,19 @@ main {
     color: #e0e0e0;
 }
 
-/* Update this class to be a simple flex container */
 .history-container {
     display: flex;
     justify-content: center;
     width: 100%;
 }
 
-/* Add these new styles for the chart's card */
 .chart-card {
     background-color: #3f3e3a;
     border: 1px solid #7c7365;
     border-radius: 8px;
     padding: 20px;
     box-sizing: border-box;
-    width: 100%;
-    max-width: 1000px; /* Adjust this value as needed */
+    max-width: 100%;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 

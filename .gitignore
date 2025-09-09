@@ -1,14 +1,31 @@
-# Virtual environment
-venv/
-.env
-
-# Django specific
-*.sqlite3
-media/
-
-# Python specific
+# Python
 __pycache__/
 *.pyc
 
-# VScode specific
+# Django
+*.sqlite3
+media/
+
+# Virtual environments
+venv/
+.env
+.env.*
+
+# Node/React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor/IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage/test
+.coverage
+coverage/
+.pytest_cache/

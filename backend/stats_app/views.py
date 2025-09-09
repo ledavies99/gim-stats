@@ -1,21 +1,12 @@
 # stats_app/views.py
 
-from django.shortcuts import render
+
 from django.http import JsonResponse
-from django.views.generic import TemplateView
 from django.views.decorators.http import require_GET
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
 from .utils import get_keys
 from datetime import datetime, timedelta
-
-
-# Serve React index.html for the main frontend
-class ReactAppView(TemplateView):
-    template_name = "index.html"
-
-    def get(self, request, *args, **kwargs):
-        return self.render_to_response({})
 
 
 @require_GET
@@ -157,48 +148,6 @@ def annotate_player_stats(player, skill_names, cache=None):
     stats.xp_gained_week = total_weekly_xp
     stats.skill_xp_gained_week = skill_xp_gained_week
     return stats
-
-
-def player_stats_view(request):
-    """
-    View to display player stats directly from the cache, optimized to avoid N+1 queries.
-    """
-    from .models import PlayerStatsCache
-
-    skill_names = load_config().get("skills", [])
-    # Prefetch PlayerStatsCache for all players
-    all_players = list(GroupMember.objects.all().order_by("player_name"))
-    caches = PlayerStatsCache.objects.select_related("group_member").in_bulk(
-        [p.id for p in all_players], field_name="group_member_id"
-    )
-    all_players_data = [
-        annotate_player_stats(player, skill_names, cache=caches.get(player.id))
-        for player in all_players
-    ]
-    all_players_data = [p for p in all_players_data if p]
-
-    # Sort by weekly XP gained descending
-    all_players_data.sort(key=lambda p: p.xp_gained_week, reverse=True)
-    for idx, player in enumerate(all_players_data):
-        player.rank = idx + 1  # 1-based rank
-
-    players_ordered = order_players_for_podium(all_players_data)
-    context = {"players": players_ordered}
-
-    return render(request, "stats_app/player_stats.html", context)
-
-
-def skill_history_view(request, skill_name):
-    """View to display the skill history page."""
-    all_players = GroupMember.objects.values("player_name").distinct()
-    selected_player_name = request.GET.get("player", None)
-
-    context = {
-        "skill_name": skill_name,
-        "all_players": all_players,
-        "selected_player_name": selected_player_name,
-    }
-    return render(request, "stats_app/skill_history.html", context)
 
 
 def extract_y_value(record, value_key, level_key, ymode):

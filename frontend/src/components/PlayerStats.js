@@ -18,7 +18,7 @@ function PlayerStats() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [historyData, setHistoryData] = useState(null);
-  const [selectedSkill, setSelectedSkill] = useState("overall"); // NEW: default to overall
+  const [selectedSkill, setSelectedSkill] = useState("overall");
 
   useEffect(() => {
     fetch("/api/player_stats/")
@@ -29,7 +29,6 @@ function PlayerStats() {
       });
   }, []);
 
-  // Fetch XP history for selected skill for all players
   useEffect(() => {
     if (players.length > 0 && selectedSkill) {
       const playerNames = players.map((p) => p.player_name).join(",");
@@ -88,7 +87,7 @@ function PlayerStats() {
                     key={skill_name}
                     className="skill-item"
                     data-xp={humanizeNumber(skill_data.xp)}
-                    onClick={() => setSelectedSkill(skill_name)} // NEW: set selected skill
+                    onClick={() => setSelectedSkill(skill_name)}
                     style={{ cursor: "pointer" }}
                   >
                     <img
@@ -188,14 +187,11 @@ function PlayerStats() {
             <h1 style={{ color: '#ffd700', fontSize: '2.8rem', margin: '0 0 10px 0', fontWeight: 'bold' }}>{selectedSkill.charAt(0).toUpperCase() + selectedSkill.slice(1)} XP Over Time</h1>
             <div className="chart-container">
               {(() => {
-                // Build a sorted union of all x-values (dates)
                 const allDatesSet = new Set();
                 historyData.datasets.forEach(ds => ds.data.forEach(point => allDatesSet.add(point.x)));
                 const allDates = Array.from(allDatesSet).sort();
 
-                // For each dataset, map y-values to the global x-values
                 const alignedDatasets = historyData.datasets.map((ds, i) => {
-                  // Build a map of x to y for this dataset
                   const xyMap = new Map(ds.data.map(point => [point.x, point.y]));
                   let lastY = null;
                   const yValues = allDates.map(date => {
@@ -220,7 +216,6 @@ function PlayerStats() {
                   <Line
                     data={{
                       labels: allDates.map(date => {
-                        // Format date as 'Aug 7', 'Sep 1', etc.
                         const d = new Date(date);
                         return d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
                       }),

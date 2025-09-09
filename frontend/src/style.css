@@ -108,10 +108,6 @@ main {
     border: 1px solid #7c7365;
 }
 
-/* Remove underline from skill links */
-.skill-grid a {
-    text-decoration: none;
-}
 
 /* Individual skill item */
 .skill-item {
@@ -249,9 +245,6 @@ main {
 
 /* --- Specific Collapsible Sections --- */
 
-.collapsible-boss-stats {}
-.collapsible-xp-gained-today {}
-.collapsible-xp-gained-week {}
 
 /* Bosses section */
 .collapsible-boss-stats[open] .boss-grid {
@@ -366,38 +359,6 @@ main {
     height: 500px; /* Increased height for better proportions */
     width: 100%;
 }
-
-#historyChart {
-    height: 100%;
-    width: 100%;
-}
-
-/* Style for the container holding the messages. Hidden by default. */
-#message-container {
-    display: none;
-    text-align: center;
-    margin-top: 20px;
-}
-
-/* Base style for all messages */
-.message {
-    padding: 15px;
-    border-radius: 8px;
-    font-weight: bold;
-}
-
-/* Specific style for the loading message */
-.loading {
-    background-color: #2a2a2a;
-    color: #ffd700;
-}
-
-/* Specific style for the error message */
-.error {
-    background-color: #4a1c1c;
-    color: #e57373;
-}
-
 
 /* Footer styling */
 footer {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { humanizeNumber } from "../utils";
 
 function PlayerStats() {
   const [players, setPlayers] = useState([]);
@@ -58,7 +59,7 @@ function PlayerStats() {
                   key={skill_name}
                   href={`/history/${skill_name}/?player=${player.player_name}`}
                 >
-                  <div className="skill-item" data-xp={skill_data.xp}>
+                  <div className="skill-item" data-xp={humanizeNumber(skill_data.xp)}>
                     <img
                       className="skill-icon"
                       src={skillIcon(skill_name)}
@@ -72,7 +73,7 @@ function PlayerStats() {
 
             <a href={`/history/overall/?player=${player.player_name}`}>
               <div className="overall-stats">
-                <div className="overall-stats-text" data-xp={player.skills.overall.xp}>
+                <div className="overall-stats-text" data-xp={humanizeNumber(player.skills.overall.xp)}>
                   <span className="overall-label">Total level:</span>
                   <span className="overall-value">{player.skills.overall.level}</span>
                 </div>
@@ -115,7 +116,7 @@ function PlayerStats() {
             <summary className="xp-grid-header">
               <span>XP Today</span>
               <span className="xp-amount" style={{ marginLeft: "auto" }}>
-                {player.xp_gained_today || 0}
+                {humanizeNumber(player.xp_gained_today || 0)}
               </span>
               {player.top_skill_today && (
                 <img
@@ -129,7 +130,7 @@ function PlayerStats() {
               {player.skill_xp_gained_today.map(([skill, xp]) => (
                 <div className="xp-item" key={skill}>
                   <span className="xp-skill">{skill}</span>
-                  <span className="xp-amount">{xp}</span>
+                  <span className="xp-amount">{humanizeNumber(xp)}</span>
                 </div>
               ))}
             </div>
@@ -147,7 +148,7 @@ function PlayerStats() {
             <summary className="xp-grid-header">
               <span>XP Week</span>
               <span className="xp-amount" style={{ marginLeft: "auto" }}>
-                {player.xp_gained_week || 0}
+                {humanizeNumber(player.xp_gained_week || 0)}
               </span>
               {player.top_skill_week && (
                 <img
@@ -161,7 +162,7 @@ function PlayerStats() {
               {player.skill_xp_gained_week.map(([skill, xp]) => (
                 <div className="xp-item" key={skill}>
                   <span className="xp-skill">{skill}</span>
-                  <span className="xp-amount">{xp}</span>
+                  <span className="xp-amount">{humanizeNumber(xp)}</span>
                 </div>
               ))}
             </div>

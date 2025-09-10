@@ -1,0 +1,369 @@
+/* Gold, Silver, Bronze Borders for Player Cards */
+.gold-border {
+    border: 2px solid #ffd700 !important;
+    box-shadow: 0 0 10px #ffd70066;
+}
+.silver-border {
+    border: 2px solid #c0c0c0 !important;
+    box-shadow: 0 0 10px #c0c0c066;
+}
+.bronze-border {
+    border: 2px solid #cd7f32 !important;
+    box-shadow: 0 0 10px #cd7f3266;
+}
+
+/* Player Card Hover Effect */
+.player-card {
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.player-card:hover {
+    box-shadow: 0 0 16px #ffd70099, 0 2px 16px #000a;
+    transform: scale(1.02);
+    z-index: 2;
+}
+
+/* Skill Item Hover Effect */
+.skill-item {
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.skill-item:hover {
+    background: #5a5752;
+    box-shadow: 0 0 8px #ffd70044;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+/* Skill Icon Hover Effect */
+.skill-icon {
+    transition: filter 0.2s;
+}
+/* Skill Icon Hover Effect with Rotation */
+.skill-icon:hover {
+    filter: brightness(1.2) drop-shadow(0 0 4px #ffd70088);
+    transform: rotate(-10deg) scale(1.1);
+    transition: filter 0.2s, transform 0.2s;
+}
+.skill-item:hover .skill-icon {
+    filter: brightness(1.2) drop-shadow(0 0 4px #ffd70088);
+    transform: rotate(-10deg) scale(1.1);
+    transition: filter 0.2s, transform 0.2s;
+}
+/* Global Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2c2925;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #3f3e3a;
+    border-bottom: 2px solid #5a5752;
+}
+
+h1 {
+    margin: 0;
+    color: #ffd700;
+}
+
+h2 {
+    color: #ffd700;
+    margin-top: 0;
+}
+
+p {
+    color: #b0a89d;
+}
+
+main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 320px);
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    width: 100%;
+}
+
+.player-card {
+    background-color: #3f3e3a;
+    border: 1px solid #7c7365;
+    border-radius: 5px;
+    width: 300px;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.skill-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 20px 0;
+    padding: 10px;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+}
+
+
+/* Individual skill item */
+.skill-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
+    position: relative;
+}
+
+/* Skill icon */
+.skill-icon {
+    width: 30px;
+    height: 30px;
+}
+
+/* Skill level */
+.skill-level {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* Overall stats container */
+.overall-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #3f3e3a;
+    padding: 2px 5px;
+    height: 38px;
+    grid-column: 3;
+}
+
+/* Styling for the text container inside the overall stats box */
+.overall-stats-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    white-space: nowrap;
+    position: relative;
+}
+
+/* Overall label */
+.overall-label {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 0;
+    line-height: 1;
+}
+
+/* Overall value */
+.overall-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* XP hover effect for skill items */
+.skill-item::after, .overall-stats-text::after {
+    content: "XP: " attr(data-xp);
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.overall-stats-text::after {
+    content: "Total XP: " attr(data-xp);
+}
+
+.skill-item:hover::after, .overall-stats-text:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* --- Collapsible Section Parent Style --- */
+.collapsible-section {
+    margin-top: 10px;
+    background-color: #514b43;
+    border: 1px solid #7c7365;
+    border-radius: 5px;
+}
+
+.collapsible-section summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    list-style: none;
+    background-color: #3f3e3a;
+    border-radius: 5px;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.collapsible-section summary:hover {
+    background-color: #5a5752;
+}
+
+.collapsible-section summary::before {
+    content: '▶';
+    font-size: 0.8em;
+    color: #ffd700;
+    transition: transform 0.2s ease-in-out, color 0.2s, filter 0.2s, text-shadow 0.2s;
+}
+
+.collapsible-section summary:hover::before {
+    color: #fff700;
+    transform: scale(1.1);
+    filter: brightness(1.2);
+    text-shadow: 0 0 8px #ffd70088;
+}
+
+.collapsible-section[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* --- Specific Collapsible Sections --- */
+
+
+/* Bosses section */
+.collapsible-boss-stats[open] .boss-grid {
+    display: flex;
+}
+
+.collapsible-boss-stats:not([open]) .boss-grid {
+    display: none;
+}
+
+.boss-grid {
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #514b43;
+    border-radius: 5px;
+}
+
+.boss-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background-color: #3f3e3a;
+    border-radius: 3px;
+}
+
+.boss-name {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+/* XP gained today section */
+.collapsible-xp-gained-today[open] .xp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #514b43;
+    border-radius: 5px;
+}
+
+.collapsible-xp-gained-today:not([open]) .xp-grid {
+    display: none;
+}
+
+/* XP gained week section */
+.collapsible-xp-gained-week[open] .xp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    background-color: #514b43;
+    border-radius: 5px;
+}
+
+.collapsible-xp-gained-week:not([open]) .xp-grid {
+    display: none;
+}
+
+.xp-grid-header {
+    display: flex;
+    align-items: center;
+}
+
+.xp-grid-header .xp-amount {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.xp-grid-header .right-icon {
+    margin-left: 8px;
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+.xp-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    background-color: #3f3e3a;
+    border-radius: 3px;
+}
+
+.xp-skill {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.xp-amount {
+    color: #e0e0e0;
+}
+
+.history-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.chart-card {
+    background-color: #3f3e3a;
+    border: 1px solid #7c7365;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+    max-width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.chart-container {
+    position: relative;
+    height: 500px; /* Increased height for better proportions */
+    width: 100%;
+}
+
+/* Footer styling */
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #3f3e3a;
+    margin-top: 20px;
+}

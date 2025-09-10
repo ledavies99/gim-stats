@@ -150,21 +150,7 @@ def annotate_player_stats(player, skill_names, cache=None):
     return stats
 
 
-def extract_y_value(record, value_key, level_key, ymode):
-    """
-    Returns the correct y-value (XP or level) from a PlayerHistory record.
-    """
-    DATA_KEY, _, _, _, _ = get_keys()
-    data = getattr(record, "data", {}).get(DATA_KEY, {})
-    try:
-        if ymode == "level":
-            return int(data.get(level_key, 1) or 1)
-        else:
-            return int(data.get(value_key, 0) or 0)
-    except (ValueError, TypeError):
-        return 1 if ymode == "level" else 0
-
-
+@require_GET
 def skill_history_data_api(request, skill_name):
     """
     API endpoint to fetch all skill history data for multiple players,
@@ -175,19 +161,30 @@ def skill_history_data_api(request, skill_name):
     if not player_names_str:
         return JsonResponse({"error": "No players selected"}, status=400)
 
-    player_names = player_names_str.split(",")
+    player_names = [
+        name.strip() for name in player_names_str.split(",") if name.strip()
+    ]
+    if not player_names:
+        return JsonResponse({"error": "No valid player names provided"}, status=400)
 
     datasets = []
 
     for player_name in player_names:
         try:
-            history_query = PlayerHistory.objects.filter(
-                group_member__player_name=player_name
-            ).order_by("timestamp")
+            history_query = (
+                PlayerHistory.objects.filter(group_member__player_name=player_name)
+                .order_by("timestamp")
+                .values(
+                    "timestamp",
+                    skill_name.capitalize(),
+                    f"{skill_name.capitalize()}_level",
+                )
+            )
         except Exception:
             continue
 
-        if not history_query.exists():
+        history_list = list(history_query)
+        if not history_list:
             continue
 
         chart_data = []
@@ -196,29 +193,22 @@ def skill_history_data_api(request, skill_name):
         prev_y = None
         run_start = None
 
-        history_list = list(history_query)
         for i, record in enumerate(history_list):
             y_val = extract_y_value(record, value_key, level_key, ymode)
-            # Only add a new point if the value changes (to reduce chart noise)
             if prev_y is None or y_val != prev_y:
-                # If this is not the first run, add the last point of the previous run
                 if run_start is not None and i > 0:
                     last_record = history_list[i - 1]
                     last_y = extract_y_value(last_record, value_key, level_key, ymode)
-                    # Avoid duplicate timestamps
-                    if last_record.timestamp != run_start.timestamp:
+                    if last_record["timestamp"] != run_start["timestamp"]:
                         chart_data.append(
                             {
-                                "x": last_record.timestamp.strftime(
-                                    "%Y-%m-%dT%H:%M:%S"
-                                ),
+                                "x": format_timestamp(last_record["timestamp"]),
                                 "y": last_y,
                             }
                         )
-                # Add the new point where the value changes
                 chart_data.append(
                     {
-                        "x": record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "x": format_timestamp(record["timestamp"]),
                         "y": y_val,
                     }
                 )
@@ -228,12 +218,12 @@ def skill_history_data_api(request, skill_name):
         if history_list:
             last_record = history_list[-1]
             last_y = extract_y_value(last_record, value_key, level_key, ymode)
-            if not chart_data or chart_data[-1]["x"] != last_record.timestamp.strftime(
-                "%Y-%m-%dT%H:%M:%S"
+            if not chart_data or chart_data[-1]["x"] != format_timestamp(
+                last_record["timestamp"]
             ):
                 chart_data.append(
                     {
-                        "x": last_record.timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "x": format_timestamp(last_record["timestamp"]),
                         "y": last_y,
                     }
                 )
@@ -246,3 +236,18 @@ def skill_history_data_api(request, skill_name):
         )
 
     return JsonResponse({"datasets": datasets})
+
+
+def format_timestamp(ts):
+    return ts.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def extract_y_value(record, value_key, level_key, ymode):
+    try:
+        data = record
+        if ymode == "level":
+            return int(data.get(level_key, 1) or 1)
+        else:
+            return int(data.get(value_key, 0) or 0)
+    except (ValueError, TypeError):
+        return 1 if ymode == "level" else 0

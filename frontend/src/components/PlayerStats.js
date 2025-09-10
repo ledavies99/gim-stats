@@ -30,19 +30,18 @@ function PlayerStats() {
       })
       .catch(() => setLoading(false));
   }, []);
-
+  
   useEffect(() => {
     if (players.length > 0 && selectedSkill) {
       const playerNames = players.map((p) => p.player_name).join(",");
-      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-      axios.get(`${API_BASE_URL}history_data/${selectedSkill}/?players=${playerNames}`)
-        .then((res) => setHistoryData(res.data));
+      getHistoryData(selectedSkill, playerNames)
+        .then((data) => setHistoryData(data));
     }
   }, [players, selectedSkill]);
 
   if (loading) return <div>Loading...</div>;
-
-  if (!players.length) {
+  
+  if (!players || !players.length) {
     return (
       <p>
         No player data could be retrieved. Please check your internet connection or if players have been added to the database.

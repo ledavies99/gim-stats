@@ -31,7 +31,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "default-key-for-local-dev-only")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["gim-stats-production.up.railway.app", "127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["back-end-production-cf03.up.railway.app", "127.0.0.1", "localhost"]
 
 # This is needed for production environments
 CSRF_TRUSTED_ORIGINS = [

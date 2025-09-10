@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { getData } from '../api';
+import { getData, getHistoryData } from '../api';
 import axios from 'axios';
 import PlayerHistoryChart from "./PlayerHistoryChart";
 

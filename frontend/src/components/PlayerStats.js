@@ -25,7 +25,7 @@ function PlayerStats() {
   useEffect(() => {
     getData()
       .then((data) => {
-        setPlayers(data.players);
+        setPlayers(Array.isArray(data.players) ? data.players : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -40,8 +40,7 @@ function PlayerStats() {
   }, [players, selectedSkill]);
 
   if (loading) return <div>Loading...</div>;
-  
-  if (!players || !players.length) {
+  if (!Array.isArray(players) || players.length === 0) {
     return (
       <p>
         No player data could be retrieved. Please check your internet connection or if players have been added to the database.

@@ -3,6 +3,9 @@
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
+from django.db.models.functions import Cast
+from django.db.models import IntegerField
+from django.db.models.fields.json import KeyTextTransform
 from .models import GroupMember, PlayerHistory
 from .api_handler import get_player_stats_from_cache, load_config
 from .utils import get_keys
@@ -171,25 +174,28 @@ def skill_history_data_api(request, skill_name):
 
     for player_name in player_names:
         try:
-            history_query = (
-                PlayerHistory.objects.filter(group_member__player_name=player_name)
-                .order_by("timestamp")
-                .values(
-                    "timestamp",
-                    skill_name.capitalize(),
-                    f"{skill_name.capitalize()}_level",
-                )
-            )
+            qs = PlayerHistory.objects.filter(
+                group_member__player_name=player_name
+            ).order_by("timestamp")
+            qs = qs.annotate(
+                skill_xp=Cast(
+                    KeyTextTransform(skill_name.capitalize(), "data"), IntegerField()
+                ),
+                skill_level=Cast(
+                    KeyTextTransform(f"{skill_name.capitalize()}_level", "data"),
+                    IntegerField(),
+                ),
+            ).values("timestamp", "skill_xp", "skill_level")
         except Exception:
             continue
 
-        history_list = list(history_query)
+        history_list = list(qs)
         if not history_list:
             continue
 
         chart_data = []
-        value_key = skill_name.capitalize()
-        level_key = f"{value_key}_level"
+        value_key = "skill_xp"
+        level_key = "skill_level"
         prev_y = None
         run_start = None
 

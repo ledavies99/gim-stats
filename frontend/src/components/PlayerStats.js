@@ -16,6 +16,11 @@ import PlayerHistoryChart from "./PlayerHistoryChart";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+
+const BACKEND_URL = process.env.REACT_APP_API_BASE_URL
+  ? process.env.REACT_APP_API_BASE_URL.replace(/\/api\/?$/, "")
+  : "";
+
 function PlayerStats() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,10 @@ function PlayerStats() {
     );
   }
 
-  const skillIcon = (skill) => `/static/images/${skill.toLowerCase()}.png`;
+  const skillIcon = (skill) =>
+    BACKEND_URL
+      ? `${BACKEND_URL}/static/images/${skill.toLowerCase()}.png`
+      : `/static/images/${skill.toLowerCase()}.png`;
 
   // Generate color palette for chart lines
   const chartColors = [

@@ -179,10 +179,16 @@ def skill_history_data_api(request, skill_name):
             ).order_by("timestamp")
             qs = qs.annotate(
                 skill_xp=Cast(
-                    KeyTextTransform(skill_name.capitalize(), "data"), IntegerField()
+                    KeyTextTransform(
+                        skill_name.capitalize(), KeyTextTransform("data", "data")
+                    ),
+                    IntegerField(),
                 ),
                 skill_level=Cast(
-                    KeyTextTransform(f"{skill_name.capitalize()}_level", "data"),
+                    KeyTextTransform(
+                        f"{skill_name.capitalize()}_level",
+                        KeyTextTransform("data", "data"),
+                    ),
                     IntegerField(),
                 ),
             ).values("timestamp", "skill_xp", "skill_level")
@@ -190,6 +196,7 @@ def skill_history_data_api(request, skill_name):
             continue
 
         history_list = list(qs)
+        print(f"DEBUG {player_name} {skill_name}: {history_list}")
         if not history_list:
             continue
 

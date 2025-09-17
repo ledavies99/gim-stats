@@ -5,7 +5,7 @@ import PlayerHistoryChart from "./components/PlayerHistoryChart";
 function App() {
   return (
     <div>
-      <h1>My React + Django App</h1>
+      <h1 className="centered-title">Group Iron Man Stats</h1>
       <PlayerStats />
     </div>
   );
